@@ -1,0 +1,7 @@
+com/de/events/dispatch/RetrofitDispatcherClient.class
+com/de/events/event/EventFactory.class
+com/de/events/dispatch/RetrofitDispatcher$1.class
+com/de/events/event/EventFactory$1.class
+com/de/events/dispatch/Dispatcher.class
+com/de/events/event/Event.class
+com/de/events/dispatch/RetrofitDispatcher.class

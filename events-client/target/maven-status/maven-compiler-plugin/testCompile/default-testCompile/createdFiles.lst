@@ -1,0 +1,5 @@
+com/de/events/mocks/MockEvent.class
+com/de/events/config/TestEventsConfig.class
+com/de/events/event/EventFactoryTest.class
+com/de/events/dispatch/RetrofitDispatcherIntegrationTest.class
+com/de/events/dispatch/RetrofitDispatcherTest.class
