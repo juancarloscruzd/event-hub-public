@@ -36,7 +36,7 @@ jobs:
       - run: 
           command: |
             # mvn dependency:go-offline
-            apt-get update && apt-get install -y awscli
+            pip install  awscli
             aws s3 mb s3://${TEST_BUCKET_NAME}
             aws s3 sync src s3://${TEST_BUCKET_NAME}/ --delete
             aws cloudformation create-stack --stack-name ${ENTERPRISE_NAME}-${CIRCLE_BUILD_NUM} --parameters ParameterKey=EnvironmentName,ParameterValue=${ENTERPRISE_NAME}-${CIRCLE_BUILD_NUM} --template-url https://s3.amazonaws.com/${TEST_BUCKET_NAME}/master.yaml --capabilities CAPABILITY_NAMED_IAM --region us-west-2
