@@ -1,0 +1,38 @@
+Description: >
+
+    This template deploys the EventServices.
+
+    Last Modified: 2018
+    Author: Kiko Gatto 
+
+Parameters:
+
+    EnvironmentName:
+        Description: An environment name that will be prefixed to resource names
+        Type: String
+
+
+Resources:
+
+    Intake:
+        Type: AWS::CloudFormation::Stack
+        Properties:
+            TemplateURL: !Sub 
+                - https://s3.amazonaws.com/${StackName}-events/intake.yaml 
+                - { StackName: !Ref EnvironmentName }
+
+    Listener:
+        Type: AWS::CloudFormation::Stack
+        Properties:
+            TemplateURL: !Sub 
+                - https://s3.amazonaws.com/${StackName}-events/listener.yaml 
+                - { StackName: !Ref EnvironmentName }
+
+    Dispatcher:
+        Type: AWS::CloudFormation::Stack
+        Properties:
+            TemplateURL: !Sub 
+                - https://s3.amazonaws.com/${StackName}-events/dispatcher.yaml 
+                - { StackName: !Ref EnvironmentName }
+
+

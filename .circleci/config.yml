@@ -1,0 +1,52 @@
+# Java Maven CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-java/ for more details
+#
+version: 2
+jobs:
+  build:
+    docker:
+      # specify the version you desire here
+      - image: circleci/openjdk:8-jdk
+      
+      # Specify service dependencies here if necessary
+      # CircleCI maintains a library of pre-built images
+      # documented at https://circleci.com/docs/2.0/circleci-images/
+      # - image: circleci/postgres:9.4
+
+    working_directory: ~/repo
+
+    environment:
+      # Customize the JVM maximum heap limit
+      MAVEN_OPTS: -Xmx3200m
+      ENTERPRISE_NAME: digital-enterprise
+      BUCKET_NAME: ${ENTERPRISE_NAME}-events
+      TEST_BUCKET_NAME: ${ENTERPRISE_NAME}-${CIRCLE_BUILD_NUM}-events
+
+    steps:
+      - checkout
+
+      - run:
+        command: |
+          aws s3 mb s3://${TEST_BUCKET_NAME}
+          aws s3 sync src s3://${TEST_BUCKET_NAME}/ --delete
+          aws cloudformation create-stack --stack-name ${ENTERPRISE_NAME}-${CIRCLE_BUILD_NUM} --parameters ParameterKey=EnvironmentName,ParameterValue=${ENTERPRISE_NAME}-${CIRCLE_BUILD_NUM} --template-url https://s3.amazonaws.com/${TEST_BUCKET_NAME}/master.yaml --capabilities CAPABILITY_NAMED_IAM --region us-west-2
+
+
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+          - v1-dependencies-{{ checksum "pom.xml" }}
+          # fallback to using the latest cache if no exact match is found
+          - v1-dependencies-
+
+      - run: mvn dependency:go-offline
+
+      - save_cache:
+          paths:
+            - ~/.m2
+          key: v1-dependencies-{{ checksum "pom.xml" }}
+        
+      # run tests!
+      - run: mvn integration-test
+
