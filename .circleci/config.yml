@@ -20,8 +20,9 @@ jobs:
       # Customize the JVM maximum heap limit
       MAVEN_OPTS: -Xmx3200m
       ENTERPRISE_NAME: digital-enterprise
-      BUCKET_NAME: ${ENTERPRISE_NAME}-events
-      TEST_BUCKET_NAME: ${ENTERPRISE_NAME}-${CIRCLE_BUILD_NUM}-events
+      BUCKET_NAME: digital-enterprise-events
+      #TEST_BUCKET_NAME: ${ENTERPRISE_NAME}-${CIRCLE_BUILD_NUM}-events
+      TEST_BUCKET_NAME: digital-enterprise-8-events
 
     steps:
       - checkout
