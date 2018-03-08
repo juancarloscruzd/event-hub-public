@@ -9,22 +9,22 @@ Parameters:
 
 resources:
 
-  DeadLetterQueue:
-    Type: 'AWS::SQS::Queue'
+    DeadLetterQueue:
+        Type: 'AWS::SQS::Queue'
 
-  EventIntake:
-    Type: 'AWS::SQS::Queue'
-    Properties:
-      VisibilityTimeout: 60
-      RedrivePolicy:
-        deadLetterTargetArn: !Sub '${DeadLetterQueue.Arn}'
-        maxReceiveCount: 10
+    EventIntake:
+        Type: 'AWS::SQS::Queue'
+        Properties:
+            VisibilityTimeout: 60
+            RedrivePolicy:
+                deadLetterTargetArn: !Sub '${DeadLetterQueue.Arn}'
+                maxReceiveCount: 10
 
-  EventInlet:
-    Type: 'AWS::SNS::Topic'
-    Properties:
-      Subscription:
-        - Endpoint: !GetAtt 
-            - EventIntake
-            - Arn
-          Protocol: sqs
+    EventInlet:
+        Type: 'AWS::SNS::Topic'
+        Properties:
+            Subscription:
+                - Endpoint: !GetAtt 
+                    - EventIntake
+                    - Arn
+                Protocol: sqs
