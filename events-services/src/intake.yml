@@ -23,8 +23,8 @@ resources:
     EventInlet:
         Type: 'AWS::SNS::Topic'
         Properties:
-            Subscription:
-                - Endpoint: !GetAtt 
-                    - EventIntake
-                    - Arn
-                Protocol: sqs
+          Subscription:
+            - Endpoint: !GetAtt 
+                - EventIntake
+                - Arn
+              Protocol: sqs
