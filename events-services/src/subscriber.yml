@@ -1,0 +1,13 @@
+Description: >
+
+    This template deploys the EventServices Subscriber Lambda function, responsible enroll Subscribers to event types
+
+    Last Modified: 2018
+    Author: Kiko Gatto 
+
+Parameters:
+
+    EnvironmentName:
+        Description: An environment name that will be prefixed to resource names
+        Type: String
+

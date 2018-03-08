@@ -1,0 +1,13 @@
+Description: >
+
+    This template deploys the EventServices Listener Lambda function, responsible to receive events from the Intake queue and forward them to the Dispatcher.
+
+    Last Modified: 2018
+    Author: Kiko Gatto 
+
+Parameters:
+
+    EnvironmentName:
+        Description: An environment name that will be prefixed to resource names
+        Type: String
+

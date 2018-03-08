@@ -1,0 +1,13 @@
+Description: >
+
+    This template deploys the EventServices Dispatcher Lambda function, responsible to route all received events to all subscribers.
+
+    Last Modified: 2018
+    Author: Kiko Gatto 
+
+Parameters:
+
+    EnvironmentName:
+        Description: An environment name that will be prefixed to resource names
+        Type: String
+
