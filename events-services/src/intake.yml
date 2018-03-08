@@ -1,3 +1,4 @@
+AWSTemplateFormatVersion: 2010-09-09
 Description: >
     This template deploys the EventsServices Intake pipeline.
 
@@ -7,7 +8,7 @@ Parameters:
         Description: An environment name that will be prefixed to resource names
         Type: String
 
-resources:
+Resources:
 
     DeadLetterQueue:
         Type: 'AWS::SQS::Queue'
