@@ -29,3 +29,9 @@ Resources:
                 - EventIntake
                 - Arn
               Protocol: sqs
+
+Outputs: 
+
+    EventIntake: 
+        Description: A reference to the created Intake queue
+        Value: !Ref EventIntake
