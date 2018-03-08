@@ -21,18 +21,18 @@ Resources:
                 - https://s3.amazonaws.com/${StackName}-events/intake.yml 
                 - { StackName: !Ref EnvironmentName }
 
-    Listener:
-        Type: AWS::CloudFormation::Stack
-        Properties:
-            TemplateURL: !Sub 
-                - https://s3.amazonaws.com/${StackName}-events/listener.yml 
-                - { StackName: !Ref EnvironmentName }
+    # Listener:
+    #     Type: AWS::CloudFormation::Stack
+    #     Properties:
+    #         TemplateURL: !Sub 
+    #             - https://s3.amazonaws.com/${StackName}-events/listener.yml 
+    #             - { StackName: !Ref EnvironmentName }
 
-    Dispatcher:
-        Type: AWS::CloudFormation::Stack
-        Properties:
-            TemplateURL: !Sub 
-                - https://s3.amazonaws.com/${StackName}-events/dispatcher.yml 
-                - { StackName: !Ref EnvironmentName }
+    # Dispatcher:
+    #     Type: AWS::CloudFormation::Stack
+    #     Properties:
+    #         TemplateURL: !Sub 
+    #             - https://s3.amazonaws.com/${StackName}-events/dispatcher.yml 
+    #             - { StackName: !Ref EnvironmentName }
 
 
