@@ -1,0 +1,68 @@
+Description: >
+    This template deploys the EventsServices Intake pipeline.
+
+Parameters:
+
+    EnvironmentName:
+        Description: An environment name that will be prefixed to resource names
+        Type: String
+
+resources:
+
+  DeadLetterQueue:
+    Type: 'AWS::SQS::Queue'
+
+  EventIntake:
+    Type: 'AWS::SQS::Queue'
+    Properties:
+      VisibilityTimeout: 60
+      RedrivePolicy:
+        deadLetterTargetArn: !Sub '${DeadLetterQueue.Arn}'
+        maxReceiveCount: 10
+
+  EventInlet:
+    Type: 'AWS::SNS::Topic'
+    Properties:
+      Subscription:
+        - Endpoint: !GetAtt 
+            - EventIntake
+            - Arn
+          Protocol: sqs
+
+
+  EventIntakeRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: logs
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: 'arn:aws:logs:*:*:*'
+        - PolicyName: sqs
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'sqs:ReceiveMessage'
+                Resource: !Sub '${EventIntake.Arn}'
+        - PolicyName: lambda
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'lambda:InvokeFunction'
+                Resource: !Sub '${WorkerLambda.Arn}'
