@@ -50,7 +50,12 @@ Resources:
     DispatcherLambda:
         Type: "AWS::Lambda::Function"
         Properties:
-            Code: ./dispatcher.js 
+            Code: 
+                S3Bucket: !Sub
+                  - https://s3.amazonaws.com/${StackName}-events/ 
+                  - { StackName: !Ref EnvironmentName }
+                S3Key: "dispatcher.js"
+
             Handler: index.handler
             MemorySize: 128
             Role: !Sub ${DispatcherLambdaRole.Arn}
