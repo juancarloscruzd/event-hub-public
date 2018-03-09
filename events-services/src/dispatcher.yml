@@ -12,7 +12,7 @@ Parameters:
         Type: String
     EventIntake:
         Description: The event intake queue, where events will be deleted after processed
-        Type: AWS::SQS::Queue
+        Type: String
 
 Resources:
     DispatcherLambdaRole: 
