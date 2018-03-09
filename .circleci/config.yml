@@ -21,11 +21,11 @@ jobs:
       MAVEN_OPTS: -Xmx3200m
       ENTERPRISE_NAME: de
       # BUILD_NUM: ${CIRCLE_BUILD_NUM}
-      BUILD_NUM: 8
+      BUILD_NUM: 9
       BUCKET_NAME: de-events
 
       #TEST_BUCKET_NAME: ${ENTERPRISE_NAME}-${BUILD_NUM}-events
-      TEST_BUCKET_NAME: de-8-events
+      TEST_BUCKET_NAME: de-9-events
 
     steps:
       - checkout
