@@ -45,9 +45,9 @@ Resources:
                     - sqs:DeleteMessage
                     Resource: !Ref EventIntake
     DispatcherLambda:
-        Type: AWS::Serverless::Function
+        Type: "AWS::Lambda::Function"
         Properties:
-            CodeUri: ./dispatcher.js 
+            Code: ./dispatcher.js 
             Handler: index.handler
             MemorySize: 128
             Role: !Sub ${DispatcherLambdaRole.Arn}
