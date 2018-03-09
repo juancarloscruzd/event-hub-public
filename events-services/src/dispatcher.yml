@@ -52,7 +52,7 @@ Resources:
         Properties:
             Code: 
                 S3Bucket: !Sub
-                  - https://s3.amazonaws.com/${StackName}-events/ 
+                  - https://s3.amazonaws.com/${StackName}-events 
                   - { StackName: !Ref EnvironmentName }
                 S3Key: "dispatcher.js"
 
