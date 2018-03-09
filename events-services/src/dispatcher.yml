@@ -15,7 +15,7 @@ Parameters:
         Type: String
     EventIntakeARN:
         Description: The event intake queue ARN, to authorize the Role
-        Type: AWS::SQS::Queue
+        Type: String
 
 Resources:
     DispatcherLambdaRole: 
