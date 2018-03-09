@@ -14,6 +14,7 @@ Parameters:
         Description: The dispatcher lambda function
         Type: String
 
+Resources:
     ListenerLambdaRole: 
         Type: AWS::IAM::Role
         Properties: 
