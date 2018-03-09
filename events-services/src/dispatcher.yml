@@ -11,7 +11,7 @@ Parameters:
         Description: An environment name that will be prefixed to resource names
         Type: String
     EventIntake:
-        Description: The event intake queue
+        Description: The event intake queue, where events will be deleted after processed
         Type: AWS::SQS::Queue
 
 Resources:
