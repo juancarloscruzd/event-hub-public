@@ -10,9 +10,12 @@ Parameters:
     EnvironmentName:
         Description: An environment name that will be prefixed to resource names
         Type: String
-    EventIntake:
-        Description: The event intake queue, where events will be deleted after processed
+    EventIntakeURL:
+        Description: The event intake queue URL, where events will be deleted after processed
         Type: String
+    EventIntakeARN:
+        Description: The event intake queue ARN, to authorize the Role
+        Type: AWS::SQS::Queue
 
 Resources:
     DispatcherLambdaRole: 
@@ -43,7 +46,7 @@ Resources:
                   - Effect: Allow
                     Action: 
                     - sqs:DeleteMessage
-                    Resource: !Ref EventIntake
+                    Resource: !Ref EventIntakeARN
     DispatcherLambda:
         Type: "AWS::Lambda::Function"
         Properties:
@@ -55,4 +58,4 @@ Resources:
             Timeout: 60
             Environment:
                 Variables:
-                    TASK_QUEUE_URL: !Ref EventIntake
+                    TASK_QUEUE_URL: !Ref EventIntakeURL

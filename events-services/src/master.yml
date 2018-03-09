@@ -30,7 +30,8 @@ Resources:
                 - { StackName: !Ref EnvironmentName }
             Parameters:
                 EnvironmentName:    !Ref EnvironmentName
-                EventIntake:    !GetAtt Intake.Outputs.EventIntakeQueueURL
+                EventIntakeURL:    !GetAtt Intake.Outputs.EventIntakeQueueURL
+                EventIntakeARN:    !GetAtt Intake.Outputs.EventIntakeQueueARN
     # Listener:
     #     Type: AWS::CloudFormation::Stack
     #     Properties:
