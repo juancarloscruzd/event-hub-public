@@ -32,6 +32,13 @@ Resources:
 
 Outputs: 
 
-    EventIntake: 
-        Description: A reference to the created Intake queue
-        Value: !Ref EventIntake
+    EventIntakeQueueURL: 
+        Description: the URL for the Intake queue
+        Value: 
+            Ref: "EventIntake"
+    EventIntakeQueueARN: 
+        Description: the URL for the Intake queue
+        Value: 
+            Fn::GetAtt:
+                - "EventIntake"
+                - "Arn"
