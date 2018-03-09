@@ -63,4 +63,16 @@ Resources:
             Timeout: 60
             Environment:
                 Variables:
-                    TASK_QUEUE_URL: !Ref EventIntakeURL
+                    INTAKE_QUEUE_URL: !Ref EventIntakeURL
+Outputs: 
+
+    DispatcherLambdaID: 
+        Description: the ID for the DispatcherLambda
+        Value: 
+            Ref: "DispatcherLambda"
+    DispatcherLambdaARN: 
+        Description: the ARN for the DispatcherLambda
+        Value: 
+            Fn::GetAtt:
+                - "DispatcherLambda"
+                - "Arn"
