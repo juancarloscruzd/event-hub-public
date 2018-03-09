@@ -40,6 +40,8 @@ Resources:
                 - { StackName: !Ref EnvironmentName }
             Parameters:
                 EnvironmentName:    !Ref EnvironmentName
+                EventIntakeURL:    !GetAtt Intake.Outputs.EventIntakeQueueURL
+                EventIntakeARN:    !GetAtt Intake.Outputs.EventIntakeQueueARN
                 DispatcherLambdaARN:    !GetAtt Dispatcher.Outputs.DispatcherLambdaARN
 
 
