@@ -54,7 +54,7 @@ Resources:
                 S3Bucket: !Sub
                   - ${StackName}-events 
                   - { StackName: !Ref EnvironmentName }
-                S3Key: "dispatcher.js"
+                S3Key: "dispatcher.zip"
 
             Handler: index.handler
             MemorySize: 128
