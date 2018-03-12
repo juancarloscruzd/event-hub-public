@@ -16,6 +16,12 @@ Parameters:
     EventIntakeARN:
         Description: The event intake queue ARN, to authorize the Role
         Type: String
+    CatchAllURL:
+        Description: The catch all queue URL, where all events will be sent to eventually
+        Type: String
+    CatchAllARN:
+        Description: The catch all queue ARN, to authorize the Role
+        Type: String
 
 Resources:
     DispatcherLambdaRole: 
@@ -40,13 +46,21 @@ Resources:
                     - logs:CreateLogStream
                     - logs:PutLogEvents
                     Resource: arn:aws:logs:*:*:*
-            - PolicyName: sqs
+            - PolicyName: IntakeQueue
               PolicyDocument: 
                   Statement: 
                   - Effect: Allow
                     Action: 
                     - sqs:DeleteMessage
                     Resource: !Ref EventIntakeARN
+            - PolicyName: CatchAllQueue
+              PolicyDocument: 
+                  Statement: 
+                  - Effect: Allow
+                    Action: 
+                    - sqs:SendMessage
+                    Resource: !Ref CatchAllARN
+
     DispatcherLambda:
         Type: "AWS::Lambda::Function"
         Properties:

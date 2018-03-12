@@ -1,0 +1,27 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >
+    This template deploys the catchAll queue.
+
+Parameters:
+
+    EnvironmentName:
+        Description: An environment name that will be prefixed to resource names
+        Type: String
+
+Resources:
+
+    CatchAll:
+        Type: 'AWS::SQS::Queue'
+
+Outputs: 
+
+    CatchAllQueueURL: 
+        Description: the URL for the CatchAll queue
+        Value: 
+            Ref: "CatchAll"
+    CatchAllQueueARN: 
+        Description: the URL for the Intake queue
+        Value: 
+            Fn::GetAtt:
+                - "CatchAll"
+                - "Arn"

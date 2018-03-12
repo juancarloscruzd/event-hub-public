@@ -22,6 +22,15 @@ Resources:
                 - { StackName: !Ref EnvironmentName }
             Parameters:
                 EnvironmentName:    !Ref EnvironmentName
+    CatchAll:
+        Type: AWS::CloudFormation::Stack
+        Properties:
+            TemplateURL: !Sub 
+                - https://s3.amazonaws.com/${StackName}-events/catchAll.yml 
+                - { StackName: !Ref EnvironmentName }
+            Parameters:
+                EnvironmentName:    !Ref EnvironmentName
+
     Dispatcher:
         Type: AWS::CloudFormation::Stack
         Properties:
@@ -32,6 +41,9 @@ Resources:
                 EnvironmentName:    !Ref EnvironmentName
                 EventIntakeURL:    !GetAtt Intake.Outputs.EventIntakeQueueURL
                 EventIntakeARN:    !GetAtt Intake.Outputs.EventIntakeQueueARN
+                CatchAllQueueURL:    !GetAtt CatchAll.Outputs.CatchAllQueueURL
+                CatchAllQueueARN:    !GetAtt CatchAll.Outputs.CatchAllQueueARN
+
     Listener:
         Type: AWS::CloudFormation::Stack
         Properties:
