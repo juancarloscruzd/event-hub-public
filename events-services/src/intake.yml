@@ -34,7 +34,7 @@ Outputs:
     EventInletTopicARN:
         Description: the ARN for the Inlet SNS
         Value: 
-            Fn::GetAtt:
+            Ref:
                 - "EventInlet"
                 - "Arn"
     EventIntakeQueueURL: 
