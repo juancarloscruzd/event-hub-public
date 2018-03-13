@@ -88,6 +88,4 @@ Resources:
           Action: 'allow'
           Principal: sns.amazonaws.com
           SourceAccount: !Ref 'AWS::AccountId'
-          SourceArn: !GetAtt 
-            - EventInletTopicARN
-            - Arn
+          SourceArn: !Ref EventInletTopicARN
