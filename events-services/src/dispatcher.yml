@@ -16,10 +16,10 @@ Parameters:
     EventIntakeARN:
         Description: The event intake queue ARN, to authorize the Role
         Type: String
-    CatchAllURL:
+    CatchAllQueueURL:
         Description: The catch all queue URL, where all events will be sent to eventually
         Type: String
-    CatchAllARN:
+    CatchAllQueueARN:
         Description: The catch all queue ARN, to authorize the Role
         Type: String
 
@@ -59,7 +59,7 @@ Resources:
                   - Effect: Allow
                     Action: 
                     - sqs:SendMessage
-                    Resource: !Ref CatchAllARN
+                    Resource: !Ref CatchAllQueueARN
 
     DispatcherLambda:
         Type: "AWS::Lambda::Function"
@@ -78,6 +78,7 @@ Resources:
             Environment:
                 Variables:
                     INTAKE_QUEUE_URL: !Ref EventIntakeURL
+                    CATCHALL_QUEUE_URL: !Ref CatchAllQueueURL
 Outputs: 
 
     DispatcherLambdaID: 
