@@ -10,6 +10,9 @@ Parameters:
     EnvironmentName:
         Description: An environment name that will be prefixed to resource names
         Type: String
+    EventInletTopicARN:
+        Description: The event inlet topic ARN, to authorize the Role
+        Type: String      
     EventIntakeURL:
         Description: The event intake queue URL, where events will be deleted after processed
         Type: String
@@ -75,3 +78,16 @@ Resources:
                 Variables:
                     TASK_QUEUE_URL: !Ref EventIntakeURL
                     EVENT_DISPATCHER_WORKER : !Ref DispatcherLambdaARN
+
+    ListenerSNSInvokePermission:
+        Type: 'AWS::Lambda::Permission'
+        Properties:
+          FunctionName: !GetAtt 
+            - ListenerLambda
+            - Arn
+          Action: 'allow'
+          Principal: sns.amazonaws.com
+          SourceAccount: !Ref 'AWS::AccountId'
+          SourceArn: !GetAtt 
+            - EventInletTopicARN
+            - Arn
