@@ -85,7 +85,7 @@ Resources:
           FunctionName: !GetAtt 
             - ListenerLambda
             - Arn
-          Action: 'allow'
+          Action: 'lambda:InvokeFunction'
           Principal: sns.amazonaws.com
           SourceAccount: !Ref 'AWS::AccountId'
           SourceArn: !Ref EventInletTopicARN
