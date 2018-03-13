@@ -34,9 +34,7 @@ Outputs:
     EventInletTopicARN:
         Description: the ARN for the Inlet SNS
         Value: 
-            Ref:
-                - "EventInlet"
-                - "Arn"
+            Ref: "EventInlet"
     EventIntakeQueueURL: 
         Description: the URL for the Intake queue
         Value: 
