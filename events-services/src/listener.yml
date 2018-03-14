@@ -77,28 +77,27 @@ Resources:
                     EVENT_DISPATCHER_WORKER : !Ref DispatcherLambdaARN
 
     ScheduledRule: 
-      Type: "AWS::Events::Rule"
-      Properties: 
-        Description: "ScheduledRule"
-        ScheduleExpression: "rate(1 minutes)"
-        State: "ENABLED"
-        Targets: 
-          - 
-            Arn: 
-              Fn::GetAtt: 
-                - "ListenerLambda"
-                - "Arn"
-            Id: "TargetFunctionV1"
+        Type: "AWS::Events::Rule"
+        Properties: 
+            Description: "ScheduledRule"
+            ScheduleExpression: "rate(1 minutes)"
+            State: "ENABLED"
+            Targets: 
+              - 
+                Arn: 
+                  Fn::GetAtt: 
+                    - "ListenerLambda"
+                    - "Arn"
+                Id: "TargetFunctionV1"
 
     PermissionForEventsToInvokeLambda: 
-      Type: "AWS::Lambda::Permission"
-      Properties: 
-          FunctionName: !GetAtt 
-            - ListenerLambda
-            - Arn
-          Action: "lambda:InvokeFunction"
-          Principal: "events.amazonaws.com"
-          SourceArn: 
-            Fn::GetAtt: 
-              - "ScheduledRule"
-              - "Arn"
+        Type: "AWS::Lambda::Permission"
+        Properties: 
+            FunctionName: 
+                Ref: "ListenerLambda"
+            Action: "lambda:InvokeFunction"
+            Principal: "events.amazonaws.com"
+            SourceArn: 
+                Fn::GetAtt: 
+                  - "ScheduledRule"
+                  - "Arn"
