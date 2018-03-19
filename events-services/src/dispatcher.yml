@@ -70,7 +70,7 @@ Resources:
                   - { StackName: !Ref EnvironmentName }
                 S3Key: "dispatcher.zip"
 
-            Handler: dispatcher.handler
+            Handler: events-services/src/dispatcher.handler
             MemorySize: 128
             Role: !Sub ${DispatcherLambdaRole.Arn}
             Runtime: nodejs6.10
