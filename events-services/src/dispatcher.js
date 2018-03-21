@@ -97,7 +97,7 @@ function deleteMessage(receiptHandle, cb) {
 function dispatch(eventString, cb) {
   var event = JSON.parse(eventString);
   var params = {
-    MessageGroupId:"catchAll",
+  //MessageGroupId:"catchAll",
     MessageBody: event.Message,
     QueueUrl: CATCHALL_QUEUE_URL
   };

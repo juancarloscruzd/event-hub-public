@@ -34,6 +34,8 @@ var handleMessages = function (messages, callback) {
       messages.forEach(function(message) {
         if( isEvent( message )) {
           handleEvent(message, callback);
+        } else {
+          console.log('Message is not an event');
         }
       });
 
@@ -54,7 +56,7 @@ var handleMessages = function (messages, callback) {
 var receiveMessages = function (callback) {
   var params = {
     QueueUrl: INTAKE_QUEUE_URL,
-    MaxNumberOfMessages: 50
+    MaxNumberOfMessages: 10
   };
   
   sqs.receiveMessage(params, callback);

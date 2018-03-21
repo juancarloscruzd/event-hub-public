@@ -73,7 +73,7 @@ Resources:
             Timeout: 60
             Environment:
                 Variables:
-                    TASK_QUEUE_URL: !Ref EventIntakeURL
+                    INTAKE_QUEUE_URL: !Ref EventIntakeURL
                     EVENT_DISPATCHER_WORKER : !Ref DispatcherLambdaARN
 
     ScheduledRule: 
