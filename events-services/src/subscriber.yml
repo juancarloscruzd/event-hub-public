@@ -38,16 +38,16 @@ Resources:
               PolicyDocument: 
                   Statement: 
                   - Effect: Allow
-                    Action: 
+                    Action:
                     - sns:CreateTopic
-                    Resource: *
+                    Resource: "*"
             - PolicyName: sqs
               PolicyDocument: 
                   Statement: 
                   - Effect: Allow
                     Action: 
                     - sns:CreateQueue
-                    Resource: *
+                    Resource: "*"
 
     SubscriberLambda:
         Type: "AWS::Lambda::Function"
