@@ -29,6 +29,25 @@ Resources:
                 - EventIntake
                 - Arn
               Protocol: sqs
+    
+    mysqspolicy:
+        Type: AWS::SQS::QueuePolicy
+        Properties:
+            PolicyDocument:
+              Id: IntaKeQueuePolicy
+              Version: '2012-10-17'
+              Statement:
+              - Sid: Allow-Inlet-SendMessage
+                Effect: Allow
+                Principal: "*"
+                Action:
+                - sqs:SendMessage
+                Resource: !GetAtt 
+                    - EventIntake
+                    - Arn
+            Queues:
+            - !Ref EventIntake
+
 
 Outputs: 
     EventInletTopicARN:
