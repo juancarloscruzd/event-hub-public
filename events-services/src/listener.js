@@ -25,7 +25,9 @@ var handleEvent = function (event, callback) {
    lambda.invoke(params, callback );  
 };
 
-var isEvent = function( event ) {
+var isEvent = function( message ) {
+    var messageBody = JSON.parse(message.Body);
+    var event = JSON.parse(messageBody.Message);
     return ( event.eventDate != undefined && event.eventType != undefined)
 };
 
