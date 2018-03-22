@@ -40,13 +40,18 @@ Resources:
                   - Effect: Allow
                     Action:
                     - sns:CreateTopic
+                    - sns:Unsubscribe
+                    - sns:Subscribe
                     Resource: "*"
             - PolicyName: sqs
               PolicyDocument: 
                   Statement: 
                   - Effect: Allow
                     Action: 
-                    - sns:CreateQueue
+                    - sqs:ListQueues
+                    - sqs:GetQueueAttributes
+                    - sqs:CreateQueue
+                    - sqs:SetQueueAttributes
                     Resource: "*"
 
     SubscriberLambda:

@@ -30,7 +30,7 @@ Resources:
                 - Arn
               Protocol: sqs
     
-    mysqspolicy:
+    IntaKeQueuePolicy:
         Type: AWS::SQS::QueuePolicy
         Properties:
             PolicyDocument:
