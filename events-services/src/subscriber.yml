@@ -105,9 +105,5 @@ Resources:
                 Ref: "SubscriberLambda"
             Action: "lambda:InvokeFunction"
             Principal: "apigateway.amazonaws.com"
-            SourceArn: 
-                Fn::GetAtt: 
-                  - "SubscribeResource"
-                  - "Arn"
 
 
