@@ -85,18 +85,25 @@ Resources:
                     - "RootResourceId"
             PathPart: "subscribe"
 
-    ProxyResourceANY:
+    SubscribeMethod:
         Type: AWS::ApiGateway::Method
         Properties:
+            OperationName: "SubscribeToEvents"
             RestApiId: !Ref SubscriberRestApi
             ResourceId: !Ref SubscribeResource
             HttpMethod: POST      
             AuthorizationType: NONE
+            MethodResponses:
+            - StatusCode: 200
+            - StatusCode: 500
             Integration:
                 Type: AWS
                 IntegrationHttpMethod: POST
                 Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SubscriberLambda.Arn}/invocations
-
+                IntegrationResponses:
+                - StatusCode: 200
+                - StatusCode: 500
+                PassthroughBehavior: WHEN_NO_MATCH
 
     PermissionForAPIInvokeLambda: 
         Type: "AWS::Lambda::Permission"

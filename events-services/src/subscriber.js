@@ -105,7 +105,7 @@ var subscribeQueue = function (topic, queueUrl, cb) {
 };
 
 exports.handler = (originalEvent, context, callback) => {
-    var event = JSON.parse(originalEvent.Body);
+    var event = originalEvent;//JSON.parse(originalEvent.Body);
     createEventTopic( event.eventType, function(err, topic) {
       if (err) {
         callback(err);
