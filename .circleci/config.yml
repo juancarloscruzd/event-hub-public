@@ -43,7 +43,7 @@ jobs:
             sudo apt-get -y -qq install awscli
             aws configure set default.region us-west-2
             aws s3 mb s3://${TEST_BUCKET_NAME} 
-            zip events-services/src/*.js events.zip
+            zip events.zip events-services/src/*.js
             aws s3 sync events-services/src s3://${TEST_BUCKET_NAME}/ --delete
             aws cloudformation create-stack --stack-name ${ENTERPRISE_NAME}-${BUILD_NUM} --parameters ParameterKey=EnvironmentName,ParameterValue=${ENTERPRISE_NAME}-${BUILD_NUM} --template-url https://s3.amazonaws.com/${TEST_BUCKET_NAME}/master.yml --capabilities CAPABILITY_NAMED_IAM --region us-west-2
 
