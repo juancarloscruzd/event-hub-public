@@ -14,55 +14,55 @@ Parameters:
 
 Resources:
 
-    Intake:
+    Publisher:
         Type: AWS::CloudFormation::Stack
         Properties:
             TemplateURL: !Sub 
-                - https://s3.amazonaws.com/${StackName}-events/intake.yml 
+                - https://s3.amazonaws.com/${StackName}-events/publisher.yml 
                 - { StackName: !Ref EnvironmentName }
             Parameters:
                 EnvironmentName:    !Ref EnvironmentName
-    CatchAll:
-        Type: AWS::CloudFormation::Stack
-        Properties:
-            TemplateURL: !Sub 
-                - https://s3.amazonaws.com/${StackName}-events/catchAll.yml 
-                - { StackName: !Ref EnvironmentName }
-            Parameters:
-                EnvironmentName:    !Ref EnvironmentName
+    # CatchAll:
+    #     Type: AWS::CloudFormation::Stack
+    #     Properties:
+    #         TemplateURL: !Sub 
+    #             - https://s3.amazonaws.com/${StackName}-events/catchAll.yml 
+    #             - { StackName: !Ref EnvironmentName }
+    #         Parameters:
+    #             EnvironmentName:    !Ref EnvironmentName
 
-    Dispatcher:
-        Type: AWS::CloudFormation::Stack
-        Properties:
-            TemplateURL: !Sub 
-                - https://s3.amazonaws.com/${StackName}-events/dispatcher.yml 
-                - { StackName: !Ref EnvironmentName }
-            Parameters:
-                EnvironmentName:    !Ref EnvironmentName
-                EventIntakeURL:    !GetAtt Intake.Outputs.EventIntakeQueueURL
-                EventIntakeARN:    !GetAtt Intake.Outputs.EventIntakeQueueARN
-                CatchAllQueueURL:    !GetAtt CatchAll.Outputs.CatchAllQueueURL
-                CatchAllQueueARN:    !GetAtt CatchAll.Outputs.CatchAllQueueARN
+    # Dispatcher:
+    #     Type: AWS::CloudFormation::Stack
+    #     Properties:
+    #         TemplateURL: !Sub 
+    #             - https://s3.amazonaws.com/${StackName}-events/dispatcher.yml 
+    #             - { StackName: !Ref EnvironmentName }
+    #         Parameters:
+    #             EnvironmentName:    !Ref EnvironmentName
+    #             EventIntakeURL:    !GetAtt Intake.Outputs.EventIntakeQueueURL
+    #             EventIntakeARN:    !GetAtt Intake.Outputs.EventIntakeQueueARN
+    #             CatchAllQueueURL:    !GetAtt CatchAll.Outputs.CatchAllQueueURL
+    #             CatchAllQueueARN:    !GetAtt CatchAll.Outputs.CatchAllQueueARN
 
-    Listener:
-        Type: AWS::CloudFormation::Stack
-        Properties:
-            TemplateURL: !Sub 
-                - https://s3.amazonaws.com/${StackName}-events/listener.yml 
-                - { StackName: !Ref EnvironmentName }
-            Parameters:
-                EnvironmentName:    !Ref EnvironmentName
-                EventIntakeURL:    !GetAtt Intake.Outputs.EventIntakeQueueURL
-                EventIntakeARN:    !GetAtt Intake.Outputs.EventIntakeQueueARN
-                DispatcherLambdaARN:    !GetAtt Dispatcher.Outputs.DispatcherLambdaARN
+    # Listener:
+    #     Type: AWS::CloudFormation::Stack
+    #     Properties:
+    #         TemplateURL: !Sub 
+    #             - https://s3.amazonaws.com/${StackName}-events/listener.yml 
+    #             - { StackName: !Ref EnvironmentName }
+    #         Parameters:
+    #             EnvironmentName:    !Ref EnvironmentName
+    #             EventIntakeURL:    !GetAtt Intake.Outputs.EventIntakeQueueURL
+    #             EventIntakeARN:    !GetAtt Intake.Outputs.EventIntakeQueueARN
+    #             DispatcherLambdaARN:    !GetAtt Dispatcher.Outputs.DispatcherLambdaARN
 
 
 
-    Subscriber:
-        Type: AWS::CloudFormation::Stack
-        Properties:
-            TemplateURL: !Sub 
-                - https://s3.amazonaws.com/${StackName}-events/subscriber.yml 
-                - { StackName: !Ref EnvironmentName }
-            Parameters:
-                EnvironmentName:    !Ref EnvironmentName
+    # Subscriber:
+    #     Type: AWS::CloudFormation::Stack
+    #     Properties:
+    #         TemplateURL: !Sub 
+    #             - https://s3.amazonaws.com/${StackName}-events/subscriber.yml 
+    #             - { StackName: !Ref EnvironmentName }
+    #         Parameters:
+    #             EnvironmentName:    !Ref EnvironmentName

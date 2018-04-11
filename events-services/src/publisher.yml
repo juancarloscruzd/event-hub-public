@@ -1,9 +1,6 @@
+AWSTemplateFormatVersion: 2010-09-09
 Description: >
-
-    This template deploys the EventServices Subscriber Lambda function, responsible enroll Subscribers to event types
-
-    Last Modified: 2018
-    Author: Kiko Gatto 
+    This template deploys the EventsServices Publish pipeline, responsible for receiving the events and making them available for dispatching to subscribers.
 
 Parameters:
 
@@ -12,7 +9,46 @@ Parameters:
         Type: String
 
 Resources:
-    SubscriberLambdaRole: 
+
+    DeadLetterQueue:
+        Type: 'AWS::SQS::Queue'
+
+    PublishedQueue:
+        Type: 'AWS::SQS::Queue'
+        Properties:
+            VisibilityTimeout: 60
+            RedrivePolicy:
+                deadLetterTargetArn: !Sub '${DeadLetterQueue.Arn}'
+                maxReceiveCount: 10
+
+    ReceivedTopic:
+        Type: 'AWS::SNS::Topic'
+        Properties:
+          Subscription:
+            - Endpoint: !GetAtt 
+                - PublishedQueue
+                - Arn
+              Protocol: sqs
+    
+    PublishedQueuePolicy:
+        Type: AWS::SQS::QueuePolicy
+        Properties:
+            PolicyDocument:
+              Id: PublishedQueuePolicy
+              Version: '2012-10-17'
+              Statement:
+              - Sid: Allow-ReceivedTopic-SendMessage
+                Effect: Allow
+                Principal: "*"
+                Action:
+                - sqs:SendMessage
+                Resource: !GetAtt 
+                    - PublishedQueue
+                    - Arn
+            Queues:
+            - !Ref PublishedQueue
+
+    PublisherLambdaRole: 
         Type: AWS::IAM::Role
         Properties: 
             AssumeRolePolicyDocument: 
@@ -39,24 +75,10 @@ Resources:
                   Statement: 
                   - Effect: Allow
                     Action:
-                    - sns:CreateTopic
-                    - sns:Unsubscribe
-                    - sns:Subscribe
-                    Resource: "*"
-            - PolicyName: sqs
-              PolicyDocument: 
-                  Statement: 
-                  - Effect: Allow
-                    Action: 
-                    - sqs:ListQueues
-                    - sqs:GetQueueAttributes
-                    - sqs:CreateQueue
-                    - sqs:SetQueueAttributes
-                    - sqs:TagQueue
-                    - sqs:UntagQueue
+                    - sns:Publish
                     Resource: "*"
 
-    SubscriberLambda:
+    PublisherLambda:
         Type: "AWS::Lambda::Function"
         Properties:
             Code: 
@@ -67,32 +89,33 @@ Resources:
 
             Handler: events-services/src/subscriber.handler
             MemorySize: 128
-            Role: !Sub ${SubscriberLambdaRole.Arn}
+            Role: !Sub ${PublisherLambdaRole.Arn}
             Runtime: nodejs6.10
             Timeout: 60
 
-    SubscriberRestApi:
+    EventsApi:
         Type: AWS::ApiGateway::RestApi
         Properties:
-            Name: SubscriberRestApi
+            Name: EventsApi
 
-    SubscribeResource: 
+
+    PublishResource: 
         Type: "AWS::ApiGateway::Resource"
         Properties: 
             RestApiId: 
-                Ref: "SubscriberRestApi"
+                Ref: "EventsApi"
             ParentId: 
                 Fn::GetAtt: 
-                    - "SubscriberRestApi"
+                    - "EventsApi"
                     - "RootResourceId"
-            PathPart: "subscribe"
+            PathPart: "publish"
 
-    SubscribeMethod:
+    PublishMethod:
         Type: AWS::ApiGateway::Method
         Properties:
-            OperationName: "SubscribeToEvents"
-            RestApiId: !Ref SubscriberRestApi
-            ResourceId: !Ref SubscribeResource
+            OperationName: "PublishEvents"
+            RestApiId: !Ref EventsApi
+            ResourceId: !Ref PublishResource
             HttpMethod: POST      
             AuthorizationType: NONE
             MethodResponses:
@@ -101,7 +124,7 @@ Resources:
             Integration:
                 Type: AWS
                 IntegrationHttpMethod: POST
-                Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SubscriberLambda.Arn}/invocations
+                Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PublisherLambda.Arn}/invocations
                 IntegrationResponses:
                 - StatusCode: 200
                 - StatusCode: 500
@@ -111,8 +134,19 @@ Resources:
         Type: "AWS::Lambda::Permission"
         Properties: 
             FunctionName: 
-                Ref: "SubscriberLambda"
+                Ref: "PublisherLambda"
             Action: "lambda:InvokeFunction"
             Principal: "apigateway.amazonaws.com"
 
 
+Outputs: 
+    PublishedQueueURL: 
+        Description: the URL for the Published events Queue
+        Value: 
+            Ref: "PublishedQueue"
+    PublishedQueueARN: 
+        Description: the ARN for the Published events Queue
+        Value: 
+            Fn::GetAtt:
+                - "PublishedQueue"
+                - "Arn"

@@ -21,14 +21,29 @@ var createEventTopic = function( eventType, cb) {
   });
 };
 
+var setQueueCallbackHook = function(queueUrl, hookUrl, cb) {
+	var params = {
+	  QueueUrl: queueUrl,
+	  Tags: { 
+	    'hookUrl': hookUrl
+	  }
+	};
+	sqs.tagQueue(params, cb);
+};
 
-var createSubscriberQueue = function( subscriber, cb) {
+var createSubscriberQueue = function( subscriber, hookUrl, cb) {
   var params = {
-    QueueName: subscriber,
+    QueueName: "DLVRY-"+subscriber,
     Attributes: {}
   };
   sqs.createQueue(params, function(err, queue) {
-      cb(err, queue ? queue.QueueUrl : null );
+  	  if(err) {
+  	  	cb(err);
+  	  } else {
+  	  	setQueueCallbackHook(queue.QueueUrl, hookUrl, function(errr, result) {
+  	  		cb(errr, queue ? queue.QueueUrl : null );
+  	  	});
+  	  }
   });
 };
 
@@ -97,7 +112,7 @@ var subscribeQueue = function (topic, queueUrl, cb) {
         if(errr) {
           cb(errr);
         } else {
-          setQueuePolicy(topic, queueUrl, queueArn, cb);
+          setQueuePolicy(topic, queueUrl, queueArn, cb);          
         }
       });
     }
@@ -110,7 +125,7 @@ exports.handler = (originalEvent, context, callback) => {
       if (err) {
         callback(err);
       } else {
-        createSubscriberQueue( event.subscriber, function(err, queue) {
+        createSubscriberQueue( event.subscriber, event.hookUrl, function(err, queue) {
           if (err) {
             callback(err);
           } else {

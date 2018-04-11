@@ -7,6 +7,9 @@ Parameters:
     EnvironmentName:
         Description: An environment name that will be prefixed to resource names
         Type: String
+    EventApiArn:
+        Description: The ARN for the Event service API
+        Type: String
 
 Resources:
 
@@ -47,6 +50,91 @@ Resources:
                     - Arn
             Queues:
             - !Ref EventIntake
+
+    PublisherLambdaRole: 
+        Type: AWS::IAM::Role
+        Properties: 
+            AssumeRolePolicyDocument: 
+                Version: '2012-10-17'
+                Statement: 
+                - Effect: Allow
+                  Principal: 
+                      Service: lambda.amazonaws.com
+                  Action: 
+                       - sts:AssumeRole
+            Path: '/'
+            Policies: 
+            - PolicyName: logs
+              PolicyDocument: 
+                  Statement: 
+                  - Effect: Allow
+                    Action: 
+                    - logs:CreateLogGroup
+                    - logs:CreateLogStream
+                    - logs:PutLogEvents
+                    Resource: arn:aws:logs:*:*:*
+            - PolicyName: sns
+              PolicyDocument: 
+                  Statement: 
+                  - Effect: Allow
+                    Action:
+                    - sns:Publish
+                    Resource: "*"
+
+    PublisherLambda:
+        Type: "AWS::Lambda::Function"
+        Properties:
+            Code: 
+                S3Bucket: !Sub
+                  - ${StackName}-events 
+                  - { StackName: !Ref EnvironmentName }
+                S3Key: "inlet.zip"
+
+            Handler: events-services/src/publisher.handler
+            MemorySize: 128
+            Role: !Sub ${PublisherLambdaRole.Arn}
+            Runtime: nodejs6.10
+            Timeout: 60
+
+
+    PublishResource: 
+        Type: "AWS::ApiGateway::Resource"
+        Properties: 
+            RestApiId: 
+                Ref: "EventApiArn"
+            ParentId: 
+                Fn::GetAtt: 
+                    - "EventApiArn"
+                    - "RootResourceId"
+            PathPart: "publish"
+
+    PublishMethod:
+        Type: AWS::ApiGateway::Method
+        Properties:
+            OperationName: "PublishEvents"
+            RestApiId: !Ref EventApiArn
+            ResourceId: !Ref PublishResource
+            HttpMethod: POST      
+            AuthorizationType: NONE
+            MethodResponses:
+            - StatusCode: 200
+            - StatusCode: 500
+            Integration:
+                Type: AWS
+                IntegrationHttpMethod: POST
+                Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PublisherLambda.Arn}/invocations
+                IntegrationResponses:
+                - StatusCode: 200
+                - StatusCode: 500
+                PassthroughBehavior: WHEN_NO_MATCH
+
+    PermissionForAPIInvokeLambda: 
+        Type: "AWS::Lambda::Permission"
+        Properties: 
+            FunctionName: 
+                Ref: "PublisherLambda"
+            Action: "lambda:InvokeFunction"
+            Principal: "apigateway.amazonaws.com"
 
 
 Outputs: 
