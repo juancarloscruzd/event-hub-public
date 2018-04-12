@@ -20,7 +20,7 @@ jobs:
       # Customize the JVM maximum heap limit
       MAVEN_OPTS: -Xmx3200m
       ENTERPRISE_NAME: de
-      BUILD_NUM: ${CIRCLE_BUILD_NUM}
+      #BUILD_NUM: ${CIRCLE_BUILD_NUM}
       #BUILD_NUM: 9
       BUCKET_NAME: de-events
 
@@ -39,6 +39,7 @@ jobs:
 
       - run: 
           command: |
+            export BUILD_NUM=${CIRCLE_BUILD_NUM}
             export TEST_BUCKET_NAME=${ENTERPRISE_NAME}-${BUILD_NUM}-events
             # mvn dependency:go-offline
             sudo apt-get -y -qq install awscli
