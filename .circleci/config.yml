@@ -25,7 +25,7 @@ jobs:
       BUCKET_NAME: de-events
 
       #TEST_BUCKET_NAME: ${ENTERPRISE_NAME}-${BUILD_NUM}-events
-      TEST_BUCKET_NAME: de-9-events
+      #TEST_BUCKET_NAME: de-9-events
 
     steps:
       - checkout
@@ -39,6 +39,7 @@ jobs:
 
       - run: 
           command: |
+            export TEST_BUCKET_NAME=${ENTERPRISE_NAME}-${BUILD_NUM}-events
             # mvn dependency:go-offline
             sudo apt-get -y -qq install awscli
             aws configure set default.region us-west-2
