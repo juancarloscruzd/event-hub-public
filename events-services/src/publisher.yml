@@ -92,6 +92,10 @@ Resources:
             Role: !Sub ${PublisherLambdaRole.Arn}
             Runtime: nodejs6.10
             Timeout: 60
+            Environment:
+                Variables:
+                    RECEIVED_EVENTS_ARN:  ${PublishedQueue.Arn}
+
 
     EventsApi:
         Type: AWS::ApiGateway::RestApi
