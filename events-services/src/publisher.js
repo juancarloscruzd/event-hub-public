@@ -17,7 +17,7 @@ var validateEvent = function(event) {
 }
 
 var publishEvent = function (event, cb) {
-    event.publishDate = Date.now().getTime();
+    event.publishDate = new Date().getTime();
     event.publisher = "PublisherLambda";
     var params = {
         'TopicArn': RECEIVED_EVENTS_ARN,
