@@ -94,7 +94,7 @@ Resources:
             Timeout: 60
             Environment:
                 Variables:
-                    RECEIVED_EVENTS_ARN:  !Sub ${ReceivedTopic.Arn}
+                    RECEIVED_EVENTS_ARN:  !Ref ReceivedTopic
 
 
     EventsApi:
