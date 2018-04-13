@@ -19,6 +19,6 @@ module.exports = {
 	    
 	},
 	isEvent : function( event ) {
-	  return ( checkEventType(event) && checkEventDate(event));
+	  return ( module.exports.checkEventType(event) && module.exports.checkEventDate(event));
 	}
 };
