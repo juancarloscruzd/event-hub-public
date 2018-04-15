@@ -77,7 +77,7 @@ Resources:
                 EnvironmentName:    !Ref EnvironmentName
                 PublishedQueueUrl:    !Ref PublishedQueueUrl
                 PublishedQueueARN:    !Ref PublishedQueueArn
-                DispatcherLambdaARN:  !GetAtt DispatcherLambda
+                DispatcherLambdaARN:  !Sub ${DispatcherLambda.Arn}
 
 # Outputs: 
 
