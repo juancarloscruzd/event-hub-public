@@ -10,7 +10,7 @@ Parameters:
     EnvironmentName:
         Description: An environment name that will be prefixed to resource names
         Type: String
-    PublishedQueueUrl:
+    PublishedQueueURL:
         Description: The published event queue URL, where events will be deleted after processed
         Type: String
     PublishedQueueARN:
@@ -64,7 +64,7 @@ Resources:
             Timeout: 60
             Environment:
                 Variables:
-                    PUBLISHED_QUEUE_URL: !Ref PublishedQueueUrl
+                    PUBLISHED_QUEUE_URL: !Ref PublishedQueueURL
 
 
     Listener:
@@ -75,7 +75,7 @@ Resources:
                 - { StackName: !Ref EnvironmentName }
             Parameters:
                 EnvironmentName:    !Ref EnvironmentName
-                PublishedQueueUrl:    !Ref PublishedQueueUrl
+                PublishedQueueURL:    !Ref PublishedQueueURL
                 PublishedQueueARN:    !Ref PublishedQueueARN
                 DispatcherLambdaARN:  !Sub ${DispatcherLambda.Arn}
 
