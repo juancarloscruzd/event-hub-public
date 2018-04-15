@@ -10,11 +10,11 @@ Parameters:
     EnvironmentName:
         Description: An environment name that will be prefixed to resource names
         Type: String
-    EventIntakeURL:
-        Description: The event intake queue URL, where events will be deleted after processed
+    PublishedQueueUrl:
+        Description: The published event queue URL, where events will be deleted after processed
         Type: String
-    EventIntakeARN:
-        Description: The event intake queue ARN, to authorize the Role
+    PublishedQueueARN:
+        Description: The published event queue ARN, to authorize the Role
         Type: String
     DispatcherLambdaARN:
         Description: The dispatcher lambda function
@@ -49,7 +49,7 @@ Resources:
                   - Effect: Allow
                     Action: 
                     - sqs:ReceiveMessage
-                    Resource: !Ref EventIntakeARN
+                    Resource: !Ref PublishedQueueARN
             - PolicyName: lambda
               PolicyDocument: 
                   Statement: 
@@ -64,7 +64,7 @@ Resources:
                 S3Bucket: !Sub
                   - ${StackName}-events 
                   - { StackName: !Ref EnvironmentName }
-                S3Key: "listener.zip"
+                S3Key: "events.zip"
 
             Handler: events-services/src/listener.handler
             MemorySize: 128
@@ -73,7 +73,7 @@ Resources:
             Timeout: 60
             Environment:
                 Variables:
-                    INTAKE_QUEUE_URL: !Ref EventIntakeURL
+                    PUBLISHED_QUEUE_URL: !Ref PublishedQueueUrl
                     EVENT_DISPATCHER_WORKER : !Ref DispatcherLambdaARN
 
     ScheduledRule: 

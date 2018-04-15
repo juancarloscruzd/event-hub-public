@@ -22,27 +22,20 @@ Resources:
                 - { StackName: !Ref EnvironmentName }
             Parameters:
                 EnvironmentName:    !Ref EnvironmentName
-    # CatchAll:
-    #     Type: AWS::CloudFormation::Stack
-    #     Properties:
-    #         TemplateURL: !Sub 
-    #             - https://s3.amazonaws.com/${StackName}-events/catchAll.yml 
-    #             - { StackName: !Ref EnvironmentName }
-    #         Parameters:
-    #             EnvironmentName:    !Ref EnvironmentName
 
-    # Dispatcher:
-    #     Type: AWS::CloudFormation::Stack
-    #     Properties:
-    #         TemplateURL: !Sub 
-    #             - https://s3.amazonaws.com/${StackName}-events/dispatcher.yml 
-    #             - { StackName: !Ref EnvironmentName }
-    #         Parameters:
-    #             EnvironmentName:    !Ref EnvironmentName
-    #             EventIntakeURL:    !GetAtt Intake.Outputs.EventIntakeQueueURL
-    #             EventIntakeARN:    !GetAtt Intake.Outputs.EventIntakeQueueARN
-    #             CatchAllQueueURL:    !GetAtt CatchAll.Outputs.CatchAllQueueURL
-    #             CatchAllQueueARN:    !GetAtt CatchAll.Outputs.CatchAllQueueARN
+    Dispatcher:
+        Type: AWS::CloudFormation::Stack
+        Properties:
+            TemplateURL: !Sub 
+                - https://s3.amazonaws.com/${StackName}-events/dispatcher.yml 
+                - { StackName: !Ref EnvironmentName }
+            Parameters:
+                EnvironmentName:    !Ref EnvironmentName
+                PublishedQueueURL:    !GetAtt Publisher.Outputs.PublishedQueueURL
+                PublishedQueueARN:    !GetAtt Publisher.Outputs.PublishedQueueARN
+                # CatchAllQueueURL:    !GetAtt CatchAll.Outputs.CatchAllQueueURL
+                # CatchAllQueueARN:    !GetAtt CatchAll.Outputs.CatchAllQueueARN
+
 
     # Listener:
     #     Type: AWS::CloudFormation::Stack
@@ -52,9 +45,20 @@ Resources:
     #             - { StackName: !Ref EnvironmentName }
     #         Parameters:
     #             EnvironmentName:    !Ref EnvironmentName
-    #             EventIntakeURL:    !GetAtt Intake.Outputs.EventIntakeQueueURL
-    #             EventIntakeARN:    !GetAtt Intake.Outputs.EventIntakeQueueARN
+    #             EventIntakeURL:    !GetAtt Publisher.Outputs.PublishedQueueURL
+    #             EventIntakeARN:    !GetAtt Publisher.Outputs.PublishedQueueARN
     #             DispatcherLambdaARN:    !GetAtt Dispatcher.Outputs.DispatcherLambdaARN
+
+    # CatchAll:
+    #     Type: AWS::CloudFormation::Stack
+    #     Properties:
+    #         TemplateURL: !Sub 
+    #             - https://s3.amazonaws.com/${StackName}-events/catchAll.yml 
+    #             - { StackName: !Ref EnvironmentName }
+    #         Parameters:
+    #             EnvironmentName:    !Ref EnvironmentName
+
+
 
 
 
