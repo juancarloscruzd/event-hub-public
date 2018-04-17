@@ -3,34 +3,6 @@
 //----------------------------
 'use strict';
 
-/*
-
-const dispatchAll = function(eventString, cb) {
-  var event = JSON.parse(eventString);
-  var invocations = [];
-  invocations.push(function(callback) {
-    dispatchEvent( event, CATCHALL_QUEUE_URL, "catchAll", cb);
-  });
-
-  listSubscribers( event.eventType, function(err, data) {
-    if(err) {
-       cb(err);
-    } else {
-      for(var i = 0; i< data.QueueUrls.length; i++ ) {
-        invocations.push(function(callback) {
-          dispatchEvent( event, data.QueueUrls[i], event.eventType, callback);
-        });
-      };
-
-      async.parallel(invocations, function(err, results) {
-        cb(err, results);
-      });
-    }
-  });
-};   
-
-*/
-
 
 var AWS = require("aws-sdk");
 
@@ -54,29 +26,31 @@ const deleteMessage = function (receiptHandle, cb) {
   sqs.deleteMessage(params, cb);
 };
 
+
 const publishEvent = function (event, topic, cb) {
     var params = {
         'TopicArn': "arn:aws:sns:"+AWS_REGION+":"+AWS_ACCOUNTID +":"+topic,
         'Subject': event.eventType,
         'Message': JSON.stringify(event)
     };
-
+    console.log("Publishing to " + params.TopicArn);
     sns.publish(params, cb);
 };
 
 const dispatchEvent = function(event, queue, groupId, cb) {
     var params = {
     //MessageGroupId: groupId,
-    MessageBody: event.Message,
+    MessageBody: JSON.stringify(event),
     QueueUrl: queue
   };
-  console.log("event received to dispatch", event.Message, event);
+  console.log("event received to dispatch", event);
   sqs.sendMessage(params, cb);
 };
 
 const dispatch = function (eventString, cb) {
-  var event = JSON.parse(eventString);
-  publishEvent( event, topic, cb);
+  var fullEvent = JSON.parse(eventString);
+  var event = JSON.parse(fullEvent.Message);
+  publishEvent( event, event.eventType, cb);
   dispatchEvent( event, CATCHALL_QUEUE_URL, "catchAll", cb);
 };
 
