@@ -79,6 +79,15 @@ Resources:
                 PublishedQueueARN:    !Ref PublishedQueueARN
                 DispatcherLambdaARN:  !Sub ${DispatcherLambda.Arn}
 
+    CatchAll:
+        Type: AWS::CloudFormation::Stack
+        Properties:
+            TemplateURL: !Sub 
+                - https://s3.amazonaws.com/${StackName}-events/catchAll.yml 
+                - { StackName: !Ref EnvironmentName }
+            Parameters:
+                EnvironmentName:    !Ref EnvironmentName
+
 # Outputs: 
 
 #     DispatcherLambdaID: 
