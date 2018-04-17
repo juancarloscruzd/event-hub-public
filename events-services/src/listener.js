@@ -6,7 +6,7 @@
 
 const AWS = require('aws-sdk');
 
-var INTAKE_QUEUE_URL = process.env.INTAKE_QUEUE_URL;
+var PUBLISHED_QUEUE_URL = process.env.PUBLISHED_QUEUE_URL;
 var EVENT_DISPATCHER_WORKER = process.env.EVENT_DISPATCHER_WORKER
 var AWS_REGION = process.env.AWS_REGION;
 
@@ -57,7 +57,7 @@ var handleMessages = function (messages, callback) {
 };
 var receiveMessages = function (callback) {
   var params = {
-    QueueUrl: INTAKE_QUEUE_URL,
+    QueueUrl: PUBLISHED_QUEUE_URL,
     MaxNumberOfMessages: 10
   };
   

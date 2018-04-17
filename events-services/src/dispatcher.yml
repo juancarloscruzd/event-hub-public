@@ -18,6 +18,16 @@ Parameters:
         Type: String
 
 Resources:
+
+    CatchAll:
+        Type: AWS::CloudFormation::Stack
+        Properties:
+            TemplateURL: !Sub 
+                - https://s3.amazonaws.com/${StackName}-events/catchAll.yml 
+                - { StackName: !Ref EnvironmentName }
+            Parameters:
+                EnvironmentName:    !Ref EnvironmentName
+
     DispatcherLambdaRole: 
         Type: AWS::IAM::Role
         Properties: 
@@ -47,6 +57,13 @@ Resources:
                     Action: 
                     - sqs:DeleteMessage
                     Resource: !Ref PublishedQueueARN
+            - PolicyName: CatchAllQueueDelivery
+              PolicyDocument: 
+                  Statement: 
+                  - Effect: Allow
+                    Action: 
+                    - sqs:SendMessage
+                    Resource: !GetAtt CatchAll.Outputs.CatchAllQueueARN
 
     DispatcherLambda:
         Type: "AWS::Lambda::Function"
@@ -65,6 +82,7 @@ Resources:
             Environment:
                 Variables:
                     PUBLISHED_QUEUE_URL: !Ref PublishedQueueURL
+                    CATCHALL_QUEUE_URL: !GetAtt CatchAll.Outputs.CatchAllQueueURL
 
 
     Listener:
@@ -79,14 +97,6 @@ Resources:
                 PublishedQueueARN:    !Ref PublishedQueueARN
                 DispatcherLambdaARN:  !Sub ${DispatcherLambda.Arn}
 
-    CatchAll:
-        Type: AWS::CloudFormation::Stack
-        Properties:
-            TemplateURL: !Sub 
-                - https://s3.amazonaws.com/${StackName}-events/catchAll.yml 
-                - { StackName: !Ref EnvironmentName }
-            Parameters:
-                EnvironmentName:    !Ref EnvironmentName
 
 # Outputs: 
 
