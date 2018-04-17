@@ -63,7 +63,7 @@ Resources:
                 S3Bucket: !Sub
                   - ${StackName}-events 
                   - { StackName: !Ref EnvironmentName }
-                S3Key: "subscriber.zip"
+                S3Key: "events.zip"
 
             Handler: events-services/src/subscriber.handler
             MemorySize: 128
