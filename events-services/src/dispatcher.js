@@ -4,44 +4,12 @@
 'use strict';
 
 /*
-var AWS = require("aws-sdk");
-var async = require('async');
 
-var INTAKE_QUEUE_URL = process.env.INTAKE_QUEUE_URL;
-var CATCHALL_QUEUE_URL = process.env.CATCHALL_QUEUE_URL;
-var AWS_REGION = process.env.AWS_REGION;
-
-var sqs = new AWS.SQS({region: AWS_REGION});
-
-var deleteMessage = function(receiptHandle, cb) {
-  var params = {
-    ReceiptHandle: receiptHandle,
-    QueueUrl: INTAKE_QUEUE_URL
-  };
-  sqs.deleteMessage(params, cb);
-};
-
-var dispatchEvent = function(event, queue, groupId, cb) {
-    var params = {
-    MessageGroupId: groupId,
-    MessageBody: event.Message,
-    QueueUrl: queue
-  };
-  sqs.sendMessage(params, cb);
-};
-
-var listSubscribers = function(eventType, callback) {
-  var params = {
-    QueueNamePrefix: eventType
-  };
-  sqs.listQueues( params, callback );
-};
-
-var dispatch = function(eventString, cb) {
+const dispatchAll = function(eventString, cb) {
   var event = JSON.parse(eventString);
   var invocations = [];
   invocations.push(function(callback) {
-    dispatchEvent( event, CATCHALL_QUEUE_URL, "catchAll", callback);
+    dispatchEvent( event, CATCHALL_QUEUE_URL, "catchAll", cb);
   });
 
   listSubscribers( event.eventType, function(err, data) {
@@ -61,49 +29,57 @@ var dispatch = function(eventString, cb) {
   });
 };   
 
-exports.handler = function(message, context, callback) {
-  dispatch(message.Body, function(err, results) {
-    if (err) {
-       callback(err);
-    } else {
-      deleteMessage(message.ReceiptHandle, callback);
-    }
-  });
-};
-
 */
-
-
-
 
 
 var AWS = require("aws-sdk");
 
-var INTAKE_QUEUE_URL = process.env.INTAKE_QUEUE_URL;
+var PUBLISHED_QUEUE_URL = process.env.PUBLISHED_QUEUE_URL;
 var CATCHALL_QUEUE_URL = process.env.CATCHALL_QUEUE_URL;
 var AWS_REGION = process.env.AWS_REGION;
+var AWS_ACCOUNTID = "548067008624";//process.env.AWS_ACCOUNTID;
 
 var sqs = new AWS.SQS({region: AWS_REGION});
-var s3 = new AWS.S3({region: AWS_REGION});
+var sns = new AWS.SNS({region: AWS_REGION});
+//var s3 = new AWS.S3({region: AWS_REGION});
 
-function deleteMessage(receiptHandle, cb) {
+//var async = require('async');
+
+
+const deleteMessage = function (receiptHandle, cb) {
   var params = {
     ReceiptHandle: receiptHandle,
-    QueueUrl: INTAKE_QUEUE_URL
+    QueueUrl: PUBLISHED_QUEUE_URL
   };
   sqs.deleteMessage(params, cb);
-}
+};
 
-function dispatch(eventString, cb) {
-  var event = JSON.parse(eventString);
-  var params = {
-  //MessageGroupId:"catchAll",
+const publishEvent = function (event, topic, cb) {
+    var params = {
+        'TopicArn': "arn:aws:sns:"+AWS_REGION+":"+AWS_ACCOUNTID +":"+topic,
+        'Subject': event.eventType,
+        'Message': JSON.stringify(event)
+    };
+
+    sns.publish(params, cb);
+};
+
+const dispatchEvent = function(event, queue, groupId, cb) {
+    var params = {
+    //MessageGroupId: groupId,
     MessageBody: event.Message,
-    QueueUrl: CATCHALL_QUEUE_URL
+    QueueUrl: queue
   };
   console.log("event received to dispatch", event.Message, event);
   sqs.sendMessage(params, cb);
-}   
+};
+
+const dispatch = function (eventString, cb) {
+  var event = JSON.parse(eventString);
+  publishEvent( event, topic, cb);
+  dispatchEvent( event, CATCHALL_QUEUE_URL, "catchAll", cb);
+};
+
 
 exports.handler = function(message, context, callback) {
   console.log("Received from listening:", message);

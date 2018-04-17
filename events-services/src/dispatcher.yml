@@ -64,6 +64,13 @@ Resources:
                     Action: 
                     - sqs:SendMessage
                     Resource: !GetAtt CatchAll.Outputs.CatchAllQueueARN
+            - PolicyName: EventTopicPublish
+              PolicyDocument: 
+                  Statement: 
+                  - Effect: Allow
+                    Action:
+                    - sns:Publish
+                    Resource: "*"
 
     DispatcherLambda:
         Type: "AWS::Lambda::Function"
