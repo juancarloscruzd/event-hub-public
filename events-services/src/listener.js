@@ -4,73 +4,49 @@
 
 'use strict';
 
+const AWS_REGION = process.env.AWS_REGION;
+
 const AWS = require('aws-sdk');
+const sqs = new AWS.SQS({region: AWS_REGION});
+const lambda = new AWS.Lambda({region: AWS_REGION});
+const eventUtils = require('./eventUtils.js');
 
-var PUBLISHED_QUEUE_URL = process.env.PUBLISHED_QUEUE_URL;
-var EVENT_DISPATCHER_WORKER = process.env.EVENT_DISPATCHER_WORKER
-var AWS_REGION = process.env.AWS_REGION;
 
-var sqs = new AWS.SQS({region: AWS_REGION});
-var lambda = new AWS.Lambda({region: AWS_REGION});
+const invokeMessageHandler = function (event, messageHandler, callback) {
+    var params = {
+        FunctionName: messageHandler,
+        InvocationType: 'Event',
+        Payload: eventUtils.toString(event)
+    };
 
-//var async = require("async");
-
-var handleEvent = function (event, callback) {
-   var params = {
-     FunctionName: EVENT_DISPATCHER_WORKER,
-     InvocationType: 'Event',
-     Payload: JSON.stringify(event)
-   };
-
-   lambda.invoke(params, callback );  
+    lambda.invoke(params, callback );  
 };
 
-var isEvent = function( message ) {
-    var messageBody = JSON.parse(message.Body);
-    var event = JSON.parse(messageBody.Message);
-    return ( event.eventDate != undefined && event.eventType != undefined)
-};
-
-var handleMessages = function (messages, callback) {
+const handleMessages = function (messages, messageHandler, callback) {
     if (messages && messages.length > 0) {
-      messages.forEach(function(message) {
-        if( isEvent( message )) {
-          handleEvent(message, callback);
-        } else {
-          console.log('Message is not an event');
-        }
-      });
-
-
-//      var invocations = [];
-
-      // events.forEach(function(event) {
-      //   invocations.push(function(callback) {
-      //     handleEvent(event, callback);
-      //   });
-      // });
-      
-      // async.parallel(invocations, function(err, results) {
-      //     callback(err, 'DONE');
-      // });
+        messages.forEach( function(message) {
+            invokeMessageHandler(message, messageHandler, callback);
+        });
     }
 };
-var receiveMessages = function (callback) {
-  var params = {
-    QueueUrl: PUBLISHED_QUEUE_URL,
-    MaxNumberOfMessages: 10
-  };
-  
-  sqs.receiveMessage(params, callback);
+
+const receiveMessages = function (queueUrl, callback) {
+    var params = {
+        QueueUrl: queueUrl,
+        MaxNumberOfMessages: 10
+    };
+    sqs.receiveMessage(params, callback);
 }
 
 
 exports.handler = (event, context, callback) => {
-    receiveMessages( function(err, data) {
-    if (err) {
-      callback(err);
-    } else {
-      handleMessages(data.Messages, callback);
-    }
-  } );
+    var messageQueueUrl = event.Body.Messages.messageQueueUrl;
+
+    receiveMessages( messageQueueUrl, function(err, data) {
+        if (err) {
+            callback("Error receiving messages:\n" + err);
+        } else {
+            handleMessages(data.Messages, messageHandler, callback);
+        }
+    });
 };

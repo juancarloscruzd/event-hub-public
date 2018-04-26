@@ -92,28 +92,83 @@ Resources:
                     CATCHALL_QUEUE_URL: !GetAtt CatchAll.Outputs.CatchAllQueueURL
 
 
-    Listener:
-        Type: AWS::CloudFormation::Stack
+    MonitorLambdaRole: 
+        Type: AWS::IAM::Role
+        Properties: 
+            AssumeRolePolicyDocument: 
+                Version: '2012-10-17'
+                Statement: 
+                - Effect: Allow
+                  Principal: 
+                      Service: lambda.amazonaws.com
+                  Action: 
+                       - sts:AssumeRole
+            Path: '/'
+            Policies: 
+            - PolicyName: logs
+              PolicyDocument: 
+                  Statement: 
+                  - Effect: Allow
+                    Action: 
+                    - logs:CreateLogGroup
+                    - logs:CreateLogStream
+                    - logs:PutLogEvents
+                    Resource: arn:aws:logs:*:*:*
+            - PolicyName: sqs
+              PolicyDocument: 
+                  Statement: 
+                  - Effect: Allow
+                    Action: 
+                    - sqs:ListQueues
+                    Resource: *
+            - PolicyName: lambda
+              PolicyDocument: 
+                  Statement: 
+                  - Effect: Allow
+                    Action: 
+                    - lambda:InvokeFunction
+                    Resource: !Ref ListenerLambdaARN
+    MonitorLambda:
+        Type: "AWS::Lambda::Function"
         Properties:
-            TemplateURL: !Sub 
-                - https://s3.amazonaws.com/${StackName}-events/listener.yml 
-                - { StackName: !Ref EnvironmentName }
-            Parameters:
-                EnvironmentName:    !Ref EnvironmentName
-                PublishedQueueURL:    !Ref PublishedQueueURL
-                PublishedQueueARN:    !Ref PublishedQueueARN
-                DispatcherLambdaARN:  !Sub ${DispatcherLambda.Arn}
+            Code: 
+                S3Bucket: !Sub
+                  - ${StackName}-events 
+                  - { StackName: !Ref EnvironmentName }
+                S3Key: "events.zip"
 
+            Handler: events-services/src/monitor.handler
+            MemorySize: 128
+            Role: !Sub ${MonitorLambdaRole.Arn}
+            Runtime: nodejs6.10
+            Timeout: 60
+            Environment:
+                Variables:
+                    PUBLISHED_QUEUE_URL: !Ref PublishedQueueURL
+                    LISTENER_LAMBDA_ARN : !Ref ListenerLambdaARN
 
-# Outputs: 
+    ScheduledRule: 
+        Type: "AWS::Events::Rule"
+        Properties: 
+            Description: "ScheduledRule"
+            ScheduleExpression: "rate(1 minute)"
+            State: "ENABLED"
+            Targets: 
+              - 
+                Arn: 
+                  Fn::GetAtt: 
+                    - "MonitorLambda"
+                    - "Arn"
+                Id: "TargetFunctionV1"
 
-#     DispatcherLambdaID: 
-#         Description: the ID for the DispatcherLambda
-#         Value: 
-#             Ref: "DispatcherLambda"
-#     DispatcherLambdaARN: 
-#         Description: the ARN for the DispatcherLambda
-#         Value: 
-#             Fn::GetAtt:
-#                 - "DispatcherLambda"
-#                 - "Arn"
+    PermissionForEventsToInvokeLambda: 
+        Type: "AWS::Lambda::Permission"
+        Properties: 
+            FunctionName: 
+                Ref: "MonitorLambda"
+            Action: "lambda:InvokeFunction"
+            Principal: "events.amazonaws.com"
+            SourceArn: 
+                Fn::GetAtt: 
+                  - "ScheduledRule"
+                  - "Arn"

@@ -1,6 +1,6 @@
 Description: >
 
-    This template deploys the EventServices Listener Lambda function, responsible to receive events from the Intake queue and forward them to the Dispatcher.
+    This template deploys the EventServices Dispatcher Lambda function, responsible to route all received events to all subscribers.
 
     Last Modified: 2018
     Author: Kiko Gatto 
@@ -16,12 +16,10 @@ Parameters:
     PublishedQueueARN:
         Description: The published event queue ARN, to authorize the Role
         Type: String
-    DispatcherLambdaARN:
-        Description: The dispatcher lambda function
-        Type: String
 
 Resources:
-    ListenerLambdaRole: 
+
+    DeliveryLambdaRole: 
         Type: AWS::IAM::Role
         Properties: 
             AssumeRolePolicyDocument: 
@@ -43,21 +41,15 @@ Resources:
                     - logs:CreateLogStream
                     - logs:PutLogEvents
                     Resource: arn:aws:logs:*:*:*
-            - PolicyName: sqs
+            - PolicyName: SubscriberQueueCleaner
               PolicyDocument: 
                   Statement: 
                   - Effect: Allow
                     Action: 
-                    - sqs:ReceiveMessage
-                    Resource: *
-            - PolicyName: lambda
-              PolicyDocument: 
-                  Statement: 
-                  - Effect: Allow
-                    Action: 
-                    - lambda:InvokeFunction
-                    Resource: !Ref DispatcherLambdaARN
-    ListenerLambda:
+                    - sqs:DeleteMessage
+                    Resource: "*"
+
+    DeliveryLambda:
         Type: "AWS::Lambda::Function"
         Properties:
             Code: 
@@ -66,12 +58,22 @@ Resources:
                   - { StackName: !Ref EnvironmentName }
                 S3Key: "events.zip"
 
-            Handler: events-services/src/listener.handler
+            Handler: events-services/src/delivery.handler
             MemorySize: 128
-            Role: !Sub ${ListenerLambdaRole.Arn}
+            Role: !Sub ${DeliveryLambdaRole.Arn}
             Runtime: nodejs6.10
             Timeout: 60
-            Environment:
-                Variables:
-                    PUBLISHED_QUEUE_URL: !Ref PublishedQueueURL
-                    EVENT_DISPATCHER_WORKER : !Ref DispatcherLambdaARN
+
+
+# Outputs: 
+
+#     DispatcherLambdaID: 
+#         Description: the ID for the DispatcherLambda
+#         Value: 
+#             Ref: "DispatcherLambda"
+#     DispatcherLambdaARN: 
+#         Description: the ARN for the DispatcherLambda
+#         Value: 
+#             Fn::GetAtt:
+#                 - "DispatcherLambda"
+#                 - "Arn"

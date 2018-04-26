@@ -23,6 +23,8 @@ Resources:
             Parameters:
                 EnvironmentName:    !Ref EnvironmentName
 
+
+
     Dispatcher:
         Type: AWS::CloudFormation::Stack
         Properties:
@@ -33,6 +35,30 @@ Resources:
                 EnvironmentName:    !Ref EnvironmentName
                 PublishedQueueURL:    !GetAtt Publisher.Outputs.PublishedQueueURL
                 PublishedQueueARN:    !GetAtt Publisher.Outputs.PublishedQueueARN
+
+
+    Delivery:
+        Type: AWS::CloudFormation::Stack
+        Properties:
+            TemplateURL: !Sub 
+                - https://s3.amazonaws.com/${StackName}-events/delivery.yml 
+                - { StackName: !Ref EnvironmentName }
+            Parameters:
+                EnvironmentName:    !Ref EnvironmentName
+
+
+    Listener:
+        Type: AWS::CloudFormation::Stack
+        Properties:
+            TemplateURL: !Sub 
+                - https://s3.amazonaws.com/${StackName}-events/listener.yml 
+                - { StackName: !Ref EnvironmentName }
+            Parameters:
+                EnvironmentName:    !Ref EnvironmentName
+                PublishedQueueURL:    !Ref PublishedQueueURL
+                PublishedQueueARN:    !Ref PublishedQueueARN
+                DispatcherLambdaARN:  !Sub ${DispatcherLambda.Arn}
+
 
     Subscriber:
         Type: AWS::CloudFormation::Stack

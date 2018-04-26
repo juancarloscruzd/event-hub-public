@@ -4,18 +4,16 @@
 'use strict';
 
 
-var AWS = require("aws-sdk");
+const AWS = require("aws-sdk");
 
-var PUBLISHED_QUEUE_URL = process.env.PUBLISHED_QUEUE_URL;
-var CATCHALL_QUEUE_URL = process.env.CATCHALL_QUEUE_URL;
-var AWS_REGION = process.env.AWS_REGION;
-var AWS_ACCOUNTID = "548067008624";//process.env.AWS_ACCOUNTID;
+const PUBLISHED_QUEUE_URL = process.env.PUBLISHED_QUEUE_URL;
+const CATCHALL_QUEUE_URL = process.env.CATCHALL_QUEUE_URL;
+const AWS_REGION = process.env.AWS_REGION;
+const AWS_ACCOUNTID = "548067008624";//process.env.AWS_ACCOUNTID;
 
-var sqs = new AWS.SQS({region: AWS_REGION});
-var sns = new AWS.SNS({region: AWS_REGION});
-//var s3 = new AWS.S3({region: AWS_REGION});
-
-//var async = require('async');
+const sqs = new AWS.SQS({region: AWS_REGION});
+const sns = new AWS.SNS({region: AWS_REGION});
+const eventUtils = require('./eventUtils.js');
 
 
 const deleteMessage = function (receiptHandle, cb) {
@@ -27,43 +25,44 @@ const deleteMessage = function (receiptHandle, cb) {
 };
 
 
-const publishEvent = function (event, topic, cb) {
+const dispatchEvent( event, cb); = function (event, topic, cb) {
     var params = {
         'TopicArn': "arn:aws:sns:"+AWS_REGION+":"+AWS_ACCOUNTID +":"+topic,
         'Subject': event.eventType,
-        'Message': JSON.stringify(event)
+        'Message': eventUtils.toString(event),
     };
-    console.log("Publishing to " + params.TopicArn);
+//    console.log("Dispatching to " + params.TopicArn);
     sns.publish(params, cb);
 };
 
-const dispatchEvent = function(event, queue, groupId, cb) {
+const catchAll = function(event, cb) {
     var params = {
-    //MessageGroupId: groupId,
-    MessageBody: JSON.stringify(event),
-    QueueUrl: queue
-  };
-  console.log("event received to dispatch", event);
-  sqs.sendMessage(params, cb);
+        MessageBody: eventUtils.toString(event),
+        QueueUrl: CATCHALL_QUEUE_URL
+    };
+//    console.log("event forwarded to catchAll queue", event);
+    sqs.sendMessage(params, cb);
 };
 
-const dispatch = function (eventString, cb) {
-  var fullEvent = JSON.parse(eventString);
-  var event = JSON.parse(fullEvent.Message);
-  publishEvent( event, event.eventType, cb);
-  dispatchEvent( event, CATCHALL_QUEUE_URL, "catchAll", cb);
+const dispatch = function (event, cb) {
+    catchAll( event, cb);
+    dispatchEvent( event, event.eventType, cb);
 };
 
 
 exports.handler = function(message, context, callback) {
-  console.log("Received from listening:", message);
-  dispatch(message.Body, function(err, results) {
-    if (err) {
-       console.log("Error dispatching event", message.Body);
-       callback(err);
-    } else {
-      console.log("Event dispatched");
-      deleteMessage(message.ReceiptHandle, callback);
+//    console.log("Received from listening:", message);
+    var event = eventUtils.getOriginal( message );
+    if( event == null ) {
+        callback("Message is not an Event!" , message );
+        return;
     }
-  });
+    dispatch( event, function(err, results) {
+        if (err) {
+            callback("Error dispatching event:\n" + err);
+            return;
+        }
+//        console.log("Event dispatched successfully");
+        deleteMessage(message.ReceiptHandle, callback);
+    });
 };

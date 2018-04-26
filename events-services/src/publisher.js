@@ -4,37 +4,55 @@
 
 'use strict';
 
+const AWS_REGION = process.env.AWS_REGION;
+const RECEIVED_EVENTS_ARN = process.env.RECEIVED_EVENTS_ARN;
+
+const Promise = require("bluebird");
 const AWS = require('aws-sdk');
+AWS.config.update({region: AWS_REGION });
+AWS.config.setPromisesDependency(Promise);
 const eventUtils = require('./eventUtils.js');
+const uuidv4 = require('uuid/v4');
 
-var AWS_REGION = process.env.AWS_REGION;
-var RECEIVED_EVENTS_ARN = process.env.RECEIVED_EVENTS_ARN;
-var sns = new AWS.SNS({region: AWS_REGION});
+const sns = new AWS.SNS();
 
-
-var validateEvent = function(event) {
-    return (event.eventType != undefined && event.eventDate != undefined );
-}
-
-var publishEvent = function (event, cb) {
+//----------------------------
+// --- Prepares the event for publishing, adding Metadata 
+//----------------------------
+const prepareEvent = function( event ) {
     event.publishDate = new Date().getTime();
     event.publisher = "PublisherLambda";
+    event.uid = uuidv4();
+};
+
+//----------------------------
+// --- Publishes the event to the intake SNS topic 
+//----------------------------
+const publishEvent = function (event) {
+    prepareEvent( event );
     var params = {
         'TopicArn': RECEIVED_EVENTS_ARN,
         'Subject': event.eventType,
-        'Message': JSON.stringify(event)
+        'Message': eventUtils.stringify(event)
     };
 
-    sns.publish(params, cb);
+    return sns.publish(params);
 };
 
-
-
+//----------------------------
+// --- Handles the incoming event 
+//----------------------------
 exports.handler = (originalEvent, context, callback) => {
-    var event = originalEvent;
-    if ( !eventUtils.isEvent(event) ) {
+    var event = eventUtils.getOriginal(event);
+
+    if ( !event ) {
         callback("Not a valid event", event);
         return;
     }
-    publishEvent( event, callback);
+    publishEvent( event )
+    .then(function(data) {
+        callback(null, data);
+    }).catch(function(err) {
+        callback(err);
+    });
 };
