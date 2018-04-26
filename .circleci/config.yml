@@ -41,6 +41,8 @@ jobs:
           command: |
             export BUILD_NUM=${CIRCLE_BUILD_NUM}
             export TEST_BUCKET_NAME=${ENTERPRISE_NAME}-${BUILD_NUM}-events
+            apt-get update 
+            apt-get install -y awscli
             # mvn dependency:go-offline
             sudo apt-get -y -qq install awscli
             aws configure set default.region us-west-2
