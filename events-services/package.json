@@ -1,0 +1,14 @@
+{
+  "name": "events-services",
+  "version": "0.0.1",
+  "description": "Event manager services",
+  "author": "Kiko Gatto",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "0.18.0",
+    "bluebird": "3.5.0",
+    "uuid": "3.2.1"
+  },
+  "devDependencies": {
+  }
+}
