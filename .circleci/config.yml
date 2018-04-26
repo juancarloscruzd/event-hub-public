@@ -36,19 +36,13 @@ jobs:
           - v1-dependencies-{{ checksum "pom.xml" }}
           # fallback to using the latest cache if no exact match is found
           - v1-dependencies-
-          
-      - run: sudo apt-get update && sudo apt-get install -qq -y python-pip libpython-dev
-      - run: curl -O https://bootstrap.pypa.io/get-pip.py && sudo python get-pip.py
-      - run: sudo pip install -q awscli --upgrade
 
       - run: 
           command: |
             export BUILD_NUM=${CIRCLE_BUILD_NUM}
             export TEST_BUCKET_NAME=${ENTERPRISE_NAME}-${BUILD_NUM}-events
-            apt-get update 
-            apt-get install -y awscli
             # mvn dependency:go-offline
-            sudo apt-get -y -qq install awscli
+            # sudo apt-get -y -qq install awscli
             aws configure set default.region us-west-2
             aws s3 mb s3://${TEST_BUCKET_NAME} 
             cd events-services
