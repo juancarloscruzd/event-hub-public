@@ -6,11 +6,11 @@ module.exports = {
 	SUBSCRIBER_QUEUE_PREFIX : "SUBS_",
 	
 	checkEventType : function( event ) {
-	    return !( !event.eventType);
+	    return !(!event || !event.eventType);
 	},
 
 	checkEventDate : function( event ) {
-	    if (!event.eventDate ) {
+	    if (!event || !event.eventDate ) {
 	    	return false;
 	    }
 	    try {
@@ -27,10 +27,13 @@ module.exports = {
 	},
 
 	stringify: function( event ) {
-		return JSON.stringfy( event );
+		return JSON.stringify( event );
 	},
 
 	getOriginal: function( event ) {
+		if(!event) {
+			return null;
+		}
 		if( module.exports.isEvent( event ) ) {
 			return event;
 		} 

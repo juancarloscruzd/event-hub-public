@@ -36,23 +36,22 @@ const publishEvent = function (event) {
         'Message': eventUtils.stringify(event)
     };
 
-    return sns.publish(params);
+    return sns.publish(params).promise();
 };
 
 //----------------------------
 // --- Handles the incoming event 
 //----------------------------
-exports.handler = (originalEvent, context, callback) => {
-    var event = eventUtils.getOriginal(event);
+exports.handler = (message, context, callback) => {
+    var event = eventUtils.getOriginal(message);
 
     if ( !event ) {
-        callback("Not a valid event", event);
+        callback("Message is not an Event!" , message );
         return;
     }
+//    console.log("Event ready for publishing ", event);
     publishEvent( event )
     .then(function(data) {
-        callback(null, data);
-    }).catch(function(err) {
-        callback(err);
-    });
+        callback(null, event);
+    }).catch( callback );
 };
