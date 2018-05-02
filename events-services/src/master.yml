@@ -60,11 +60,11 @@ Resources:
     #             DispatcherLambdaARN:  !Sub ${DispatcherLambda.Arn}
 
 
-    # Subscriber:
-    #     Type: AWS::CloudFormation::Stack
-    #     Properties:
-    #         TemplateURL: !Sub 
-    #             - https://s3.amazonaws.com/${StackName}-events/subscriber.yml 
-    #             - { StackName: !Ref EnvironmentName }
-    #         Parameters:
-    #             EnvironmentName:    !Ref EnvironmentName
+    Subscriber:
+        Type: AWS::CloudFormation::Stack
+        Properties:
+            TemplateURL: !Sub 
+                - https://s3.amazonaws.com/${StackName}-events/subscriber.yml 
+                - { StackName: !Ref EnvironmentName }
+            Parameters:
+                EnvironmentName:   !Ref EnvironmentName

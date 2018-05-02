@@ -64,7 +64,9 @@ const catchAll = function( event ) {
 // --- Dispatches the event 
 //--------------------------------------------------------
 const dispatch = function (event) {
-    return Promise.all(catchAll( event ), dispatchEvent( event, event.eventType ));
+    var prom = catchAll( event )
+    dispatchEvent( event, event.eventType );
+    return prom;
 };
 
 
@@ -81,7 +83,9 @@ exports.handler = function(message, context, callback) {
 
     dispatch( event )
     .then(function(data) {
-        deleteMessage(message.ReceiptHandle)
+        if(message.ReceiptHandle) {
+            deleteMessage(message.ReceiptHandle)
+        }
     })
     .then( function(data) {
         callback(null, event);

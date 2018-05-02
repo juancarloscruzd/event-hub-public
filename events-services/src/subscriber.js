@@ -4,111 +4,134 @@
 
 'use strict';
 
+const AWS_REGION = process.env.AWS_REGION;
+const RECEIVED_EVENTS_ARN = process.env.RECEIVED_EVENTS_ARN;
+
+const Promise = require("bluebird");
 const AWS = require('aws-sdk');
+AWS.config.update({region: AWS_REGION });
+AWS.config.setPromisesDependency(Promise);
+const eventUtils = require('./eventUtils.js');
 
-var AWS_REGION = process.env.AWS_REGION;
-
-var sns = new AWS.SNS({region: AWS_REGION});
-var sqs = new AWS.SQS({region: AWS_REGION});
+const sns = new AWS.SNS();
+const sqs = new AWS.SQS();
 
 
-var createEventTopic = function( eventType, cb) {
-  var params = {
-    Name: eventType
-  };
-  sns.createTopic(params, function(err, topic) {
-      cb(err, topic ? topic.TopicArn : null );
-  });
+
+//----------------------------
+// --- Creates the notification topic for this type of event. The operation is Idepotent.
+//----------------------------
+var createEventTopic = function( eventType ) {
+    var params = {
+      Name: eventType
+    };
+    return sns.createTopic(params).promise();
+  // sns.createTopic(params, function(err, topic) {
+  //     cb(err, topic ? topic.TopicArn : null );
+  // });
 };
 
-var setQueueCallbackHook = function(queueUrl, hookUrl, cb) {
+//----------------------------
+// --- Sets the URL to be called once the event happens
+//----------------------------
+var setQueueCallbackHook = function(queueUrl, hookUrl) {
 	var params = {
-	  QueueUrl: queueUrl,
-	  Tags: { 
-	    'hookUrl': hookUrl
-	  }
+	    QueueUrl: queueUrl,
+	    Tags: { 
+	        'hookUrl': hookUrl
+    	}
 	};
-	sqs.tagQueue(params, cb);
+	return sqs.tagQueue(params).promise();
 };
 
-var createSubscriberQueue = function( subscriber, hookUrl, cb) {
-  var params = {
-    QueueName: "DLVRY-"+subscriber,
-    Attributes: {}
-  };
-  sqs.createQueue(params, function(err, queue) {
-  	  if(err) {
-  	  	cb(err);
-  	  } else {
-  	  	setQueueCallbackHook(queue.QueueUrl, hookUrl, function(errr, result) {
-  	  		cb(errr, queue ? queue.QueueUrl : null );
-  	  	});
-  	  }
-  });
+//----------------------------
+// --- Creates the delivery queue topic for this subscriber. The operation is Idepotent.
+//----------------------------
+var createSubscriberQueue = function( subscriber, hookUrl) {
+    var params = {
+        QueueName: "DLVRY-"+subscriber,
+        Attributes: {}
+    };
+    return sqs.createQueue(params).promise()
+    .then( function(queue) {
+        return setQueueCallbackHook(queue.QueueUrl, hookUrl);
+    });
 };
 
-var getQueueArn = function(queueUrl, cb) {
-  var params = {
-    QueueUrl: queueUrl,
-    AttributeNames: ["QueueArn"]
-  };
+//----------------------------
+// --- Returns the ARN for the given queue
+//----------------------------
+var getQueueArn = function( queueUrl ) {
+    var params = {
+        QueueUrl: queueUrl,
+        AttributeNames: ["QueueArn"]
+    };
 
-  sqs.getQueueAttributes(params, function (err, queue) {
-     cb(err, queue ? queue.Attributes.QueueArn : null);
-  });
+    return sqs.getQueueAttributes(params).promise();
+//     cb(err, queue ? queue.Attributes.QueueArn : null);
 }
 
-var subscribe = function (topic, queueArn, cb) {
-  var subscriptionParams = {
-    'TopicArn': topic,
-    'Protocol': 'sqs',
-    'Endpoint': queueArn
-  };
-  sns.subscribe(subscriptionParams, cb);
-
+//----------------------------
+// --- Subscribes the given queue(For the subscriber) to the given topic (for the type of event)
+//----------------------------
+var subscribeQueue = function (topic, queue ) {
+    var subscriptionParams = {
+        'TopicArn': topic.TopicArn,
+        'Protocol': 'sqs',
+        'Endpoint': queue.QueueArn
+    };
+    return sns.subscribe(subscriptionParams).promise();
 };
 
+//----------------------------
+// --- Sets permissions policy for the queue
+//----------------------------
+var setQueuePolicy = function(topic, queueUrl, queueArn) {
 
-var setQueuePolicy = function(topic, queueUrl, queueArn, cb) {
+    var attributes = {
+        "Version": "2008-10-17",
+        "Id": queueArn + "/SQSDefaultPolicy",
+        "Statement": [{
+            "Sid": "Sid" + topic,
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "*"
+            },
+            "Action": "SQS:SendMessage",
+            "Resource": queueArn,
+            "Condition": {
+                "ArnEquals": {
+                    "aws:SourceArn": topic
+                }
+            }
+        }]
+    };
 
-  var attributes = {
-    "Version": "2008-10-17",
-    "Id": queueArn + "/SQSDefaultPolicy",
-    "Statement": [{
-      "Sid": "Sid" + topic,
-      "Effect": "Allow",
-      "Principal": {
-        "AWS": "*"
-      },
-      "Action": "SQS:SendMessage",
-      "Resource": queueArn,
-      "Condition": {
-        "ArnEquals": {
-          "aws:SourceArn": topic
+    var params = {
+        QueueUrl: queueUrl,
+        Attributes: {
+            'Policy': JSON.stringify(attributes)
         }
-      }
-    }]
-  };
-
-  var params = {
-    QueueUrl: queueUrl,
-    Attributes: {
-      'Policy': JSON.stringify(attributes)
-    }
-  };
-
-  sqs.setQueueAttributes(params, function (err, policy) {
-    cb( err, policy )
-  });
+    };
+    return sqs.setQueueAttributes(params ).promise();
 };
 
 
-var subscribeQueue = function (topic, queueUrl, cb) {
+//----------------------------
+// --- Sunscribes the queue to a topic
+//----------------------------
+var subscribe = function (topic, queueUrl ) {
+
+    getQueueArn(queueUrl)
+    .then( function(queue) {
+        subscribeQueue(topic, queueArn, function(errr, subscription) {
+    })    
+
   getQueueArn(queueUrl, function(err, queueArn){
     if(err) {
       cb(err);
     } else {
-      subscribe(topic, queueArn, function(errr, subscription) {
+      subscribeQueue(topic, queueArn, function(errr, subscription) {
         if(errr) {
           cb(errr);
         } else {
@@ -119,19 +142,25 @@ var subscribeQueue = function (topic, queueUrl, cb) {
   });
 };
 
-exports.handler = (originalEvent, context, callback) => {
-    var event = originalEvent;//JSON.parse(originalEvent.Body);
-    createEventTopic( event.eventType, function(err, topic) {
-      if (err) {
-        callback(err);
-      } else {
-        createSubscriberQueue( event.subscriber, event.hookUrl, function(err, queue) {
-          if (err) {
-            callback(err);
-          } else {
-            subscribeQueue(topic, queue, callback);
-          }
-        });
-      }
-    });
+//----------------------------
+// --- Handles the request for subscription
+//----------------------------
+exports.handler = (message, context, callback) => {
+    var subscription = message;
+
+    if ( !subscription ) {
+        callback("Message is not a subscription!" , message );
+        return;
+    }
+
+    createEventTopic( subscription.eventType )
+    .then( function( topic ) {
+        return createSubscriberQueue( subscription.subscriber, subscription.hookUrl)
+    })
+    .then(function( queue ){
+        return subscribe(topic, queue);
+    }) 
+    .then( function(data) {
+        callback(null, subscription);
+    }).catch( callback );
 };
