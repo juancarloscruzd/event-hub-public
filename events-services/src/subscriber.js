@@ -5,13 +5,11 @@
 'use strict';
 
 const AWS_REGION = process.env.AWS_REGION;
-const RECEIVED_EVENTS_ARN = process.env.RECEIVED_EVENTS_ARN;
 
 const Promise = require("bluebird");
 const AWS = require('aws-sdk');
 AWS.config.update({region: AWS_REGION });
 AWS.config.setPromisesDependency(Promise);
-const eventUtils = require('./eventUtils.js');
 
 const sns = new AWS.SNS();
 const sqs = new AWS.SQS();
@@ -26,22 +24,22 @@ var createEventTopic = function( eventType ) {
       Name: eventType
     };
     return sns.createTopic(params).promise();
-  // sns.createTopic(params, function(err, topic) {
-  //     cb(err, topic ? topic.TopicArn : null );
-  // });
 };
 
 //----------------------------
 // --- Sets the URL to be called once the event happens
 //----------------------------
 var setQueueCallbackHook = function(queueUrl, hookUrl) {
-	var params = {
-	    QueueUrl: queueUrl,
-	    Tags: { 
-	        'hookUrl': hookUrl
-    	}
-	};
-	return sqs.tagQueue(params).promise();
+    if(!hookUrl) {
+        return;
+    }
+    var params = {
+        QueueUrl: queueUrl,
+        Tags: { 
+            'hookUrl': hookUrl
+        }
+    };
+    sqs.tagQueue(params);
 };
 
 //----------------------------
@@ -54,20 +52,27 @@ var createSubscriberQueue = function( subscriber, hookUrl) {
     };
     return sqs.createQueue(params).promise()
     .then( function(queue) {
-        return setQueueCallbackHook(queue.QueueUrl, hookUrl);
+        //console.log("New queue created: " + queue.QueueUrl);
+        setQueueCallbackHook(queue.QueueUrl, hookUrl);
+        return queue;
     });
 };
 
 //----------------------------
 // --- Returns the ARN for the given queue
 //----------------------------
-var getQueueArn = function( queueUrl ) {
+var getQueueArn = function( queue ) {
     var params = {
-        QueueUrl: queueUrl,
+        QueueUrl: queue.QueueUrl,
         AttributeNames: ["QueueArn"]
     };
 
-    return sqs.getQueueAttributes(params).promise();
+    return sqs.getQueueAttributes(params).promise()
+    .then( function (loadedQueue) {
+        queue.QueueArn = loadedQueue.Attributes.QueueArn;
+        return queue;
+    });
+    
 //     cb(err, queue ? queue.Attributes.QueueArn : null);
 }
 
@@ -86,11 +91,11 @@ var subscribeQueue = function (topic, queue ) {
 //----------------------------
 // --- Sets permissions policy for the queue
 //----------------------------
-var setQueuePolicy = function(topic, queueUrl, queueArn) {
+var setQueuePolicy = function(topic, queue) {
 
     var attributes = {
         "Version": "2008-10-17",
-        "Id": queueArn + "/SQSDefaultPolicy",
+        "Id": queue.QueueArn + "/SQSDefaultPolicy",
         "Statement": [{
             "Sid": "Sid" + topic,
             "Effect": "Allow",
@@ -98,7 +103,7 @@ var setQueuePolicy = function(topic, queueUrl, queueArn) {
                 "AWS": "*"
             },
             "Action": "SQS:SendMessage",
-            "Resource": queueArn,
+            "Resource": queue.QueueArn,
             "Condition": {
                 "ArnEquals": {
                     "aws:SourceArn": topic
@@ -108,7 +113,7 @@ var setQueuePolicy = function(topic, queueUrl, queueArn) {
     };
 
     var params = {
-        QueueUrl: queueUrl,
+        QueueUrl: queue.QueueUrl,
         Attributes: {
             'Policy': JSON.stringify(attributes)
         }
@@ -120,26 +125,19 @@ var setQueuePolicy = function(topic, queueUrl, queueArn) {
 //----------------------------
 // --- Sunscribes the queue to a topic
 //----------------------------
-var subscribe = function (topic, queueUrl ) {
+var subscribe = function (topic, queue ) {
 
-    getQueueArn(queueUrl)
-    .then( function(queue) {
-        subscribeQueue(topic, queueArn, function(errr, subscription) {
-    })    
-
-  getQueueArn(queueUrl, function(err, queueArn){
-    if(err) {
-      cb(err);
-    } else {
-      subscribeQueue(topic, queueArn, function(errr, subscription) {
-        if(errr) {
-          cb(errr);
-        } else {
-          setQueuePolicy(topic, queueUrl, queueArn, cb);          
-        }
-      });
-    }
-  });
+    getQueueArn(queue)
+    .then( function( loadedQueue) {
+        //console.log("QueueArn loaded: " + loadedQueue.QueueArn);
+        queue.QueueArn = loadedQueue.QueueArn;
+        subscribeQueue(topic, queue);
+        return queue;
+    })
+    .then(function() {
+        //console.log("Queue subscribed");
+        return setQueuePolicy(topic, queue);
+    })
 };
 
 //----------------------------
@@ -148,19 +146,23 @@ var subscribe = function (topic, queueUrl ) {
 exports.handler = (message, context, callback) => {
     var subscription = message;
 
-    if ( !subscription ) {
+    if ( !subscription || !subscription.eventType || !subscription.subscriber ) {
         callback("Message is not a subscription!" , message );
         return;
     }
-
+    var topic;
     createEventTopic( subscription.eventType )
-    .then( function( topic ) {
+    .then( function( t ) {
+        topic = t;
+        //console.log("New topic created: " + topic.TopicArn);
         return createSubscriberQueue( subscription.subscriber, subscription.hookUrl)
     })
     .then(function( queue ){
+        //console.log("Queue ready (setting Hook might be almost ready): " + queue.QueueUrl);
         return subscribe(topic, queue);
     }) 
     .then( function(data) {
+        //console.log("All Done!");
         callback(null, subscription);
     }).catch( callback );
 };

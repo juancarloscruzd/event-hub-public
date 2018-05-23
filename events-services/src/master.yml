@@ -37,14 +37,14 @@ Resources:
                 PublishedQueueARN:    !GetAtt Publisher.Outputs.PublishedQueueARN
 
 
-    # Delivery:
-    #     Type: AWS::CloudFormation::Stack
-    #     Properties:
-    #         TemplateURL: !Sub 
-    #             - https://s3.amazonaws.com/${StackName}-events/delivery.yml 
-    #             - { StackName: !Ref EnvironmentName }
-    #         Parameters:
-    #             EnvironmentName:    !Ref EnvironmentName
+    Delivery:
+        Type: AWS::CloudFormation::Stack
+        Properties:
+            TemplateURL: !Sub 
+                - https://s3.amazonaws.com/${StackName}-events/delivery.yml 
+                - { StackName: !Ref EnvironmentName }
+            Parameters:
+                EnvironmentName:    !Ref EnvironmentName
 
 
     # Listener:

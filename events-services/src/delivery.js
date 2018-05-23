@@ -7,39 +7,52 @@
 const AWS_REGION = process.env.AWS_REGION;
 const AWS_ACCOUNTID = "548067008624";//process.env.AWS_ACCOUNTID;
 
+
+const Promise = require("bluebird");
+const AWS = require('aws-sdk');
+AWS.config.update({region: AWS_REGION });
+AWS.config.setPromisesDependency(Promise);
+const eventUtils = require('./eventUtils.js');
+
+const sqs = new AWS.SQS();
 const qs = require('querystring');
-const AWS = require("aws-sdk");
 const axios = require('axios');
 
-const sqs = new AWS.SQS({region: AWS_REGION});
 
-
-
-const getQueueCallbackHook = function(queueUrl, cb) {
+//--------------------------------------------------------
+// --- Loads the delivery URL for this queue 
+//--------------------------------------------------------
+const loadDeliveryUrl = function(queueUrl) {
     var params = {
         QueueUrl: queueUrl,
     };
-    sqs.listQueueTags(params, function(err, data) {
-        if( err ) {
-            cb( "Error listing queue tags\n" + err);
-            return;
-        }
-        var tags = ( data && data.Tags) ? data.Tags : {};
-        cb(null, tags.hookUrl);
+    return sqs.listQueueTags(params).promise()
+    .then( function(allQueueTags){
+        var tags = ( allQueueTags && allQueueTags.Tags) ? allQueueTags.Tags : {};
+        return tags;
+    })
+    .catch(function (error) {
+        console.log("Error listing queue tags\n" + error);
     });
 };
 
-const deleteMessage = function (receiptHandle, queueUrl, cb) {
+//--------------------------------------------------------
+// --- Removes the message from the queue 
+//--------------------------------------------------------
+const deleteMessage = function (receiptHandle, queueUrl) {
   var params = {
     ReceiptHandle: receiptHandle,
     QueueUrl: queueUrl
   };
-  sqs.deleteMessage(params, cb);
+  return sqs.deleteMessage(params).promise();
 };
 
 
-const deliverEvent = function (event, hookUrl, cb) {
-    axios.post(hookUrl, event)
+//--------------------------------------------------------
+// --- Delivers the event to the url 
+//--------------------------------------------------------
+const deliverEvent = function (event, deliveryUrl) {
+    axios.post(deliveryUrl, event)
     .then(function (response) {
         console.log("Event delivered!")
     })
@@ -49,27 +62,35 @@ const deliverEvent = function (event, hookUrl, cb) {
 };
 
 
-const deliver = function (event, queueUrl, cb) {
-    getQueueCallbackHook( queueUrl, function(err, hookUrl) {
-        deliverEvent( event, hookUrl, cb);
+//--------------------------------------------------------
+// --- Delivers the event 
+//--------------------------------------------------------
+const deliver = function (event, queueUrl ) {
+    loadDeliveryUrl( queueUrl)
+    .then(function(tags) {
+        deliverEvent( event, tags);
     });
 };
 
 
+//----------------------------
+// --- Handles the incoming event 
+//----------------------------
 exports.handler = function(message, context, callback) {
 //    console.log("Received from listening:", message);
-    var event = eventUtils.getOriginal( message );
-    if( event == null ) {
+    var event = eventUtils.getOriginal(message);
+    if ( !event ) {
         callback("Message is not an Event!" , message );
         return;
     }
-
-    deliver(event, event.QueueUrl, function(err, results) {
-    if (err) {
-         callback("Error delivering event\n" + err);
-         return;
-    } 
-//    console.log("Event delivered");
-    deleteMessage(message.ReceiptHandle, message.QueueUrl, callback);    
-  });
+    deliver(event, event.QueueUrl)
+    .then(function(data) {
+        if(message.ReceiptHandle) {
+            deleteMessage(message.ReceiptHandle, message.QueueUrl);
+        }
+    })
+    .then( function(data) {
+        callback(null, event);
+    })
+    .catch( callback );
 };

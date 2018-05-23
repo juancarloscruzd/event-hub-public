@@ -4,49 +4,76 @@
 
 'use strict';
 
+
 const AWS_REGION = process.env.AWS_REGION;
 
+const Promise = require("bluebird");
 const AWS = require('aws-sdk');
-const sqs = new AWS.SQS({region: AWS_REGION});
-const lambda = new AWS.Lambda({region: AWS_REGION});
+AWS.config.update({region: AWS_REGION });
+AWS.config.setPromisesDependency(Promise);
 const eventUtils = require('./eventUtils.js');
 
+const sqs = new AWS.SQS();
+const lambda = new AWS.Lambda(;
 
-const invokeMessageHandler = function (event, messageHandler, callback) {
+
+
+//----------------------------
+// --- Invokes the true handler for the listened message 
+//----------------------------
+const invokeMessageHandler = function (event, messageHandler) {
     var params = {
         FunctionName: messageHandler,
-        InvocationType: 'Event',
-        Payload: eventUtils.toString(event)
+        InvocationType: 'Listener event',
+        Payload: eventUtils.stringify(event)
     };
-
-    lambda.invoke(params, callback );  
+    return lambda.invoke( params ).promise();
 };
 
-const handleMessages = function (messages, messageHandler, callback) {
-    if (messages && messages.length > 0) {
+//----------------------------
+// --- For each message, invokes its handler 
+//----------------------------
+const handleMessages = function (messages, messageHandler) {
+    if (messages) {
         messages.forEach( function(message) {
-            invokeMessageHandler(message, messageHandler, callback);
+            invokeMessageHandler(message, messageHandler);
         });
     }
 };
 
-const receiveMessages = function (queueUrl, callback) {
+//----------------------------
+// --- Checks for new messages on the queue 
+//----------------------------
+const checkForMessages = function ( queueUrl ) {
     var params = {
         QueueUrl: queueUrl,
         MaxNumberOfMessages: 10
     };
-    sqs.receiveMessage(params, callback);
+    return sqs.receiveMessage(params).promise()
+    .then( function(data){
+        return data.Messages;
+    });
 }
 
-
-exports.handler = (event, context, callback) => {
+//----------------------------
+// --- Handles the incoming messages
+//----------------------------
+exports.handler = (message, context, callback) => {
     var messageQueueUrl = event.Body.Messages.messageQueueUrl;
 
-    receiveMessages( messageQueueUrl, function(err, data) {
+    checkForMessages( messageQueueUrl, function(err, data) {
         if (err) {
             callback("Error receiving messages:\n" + err);
         } else {
             handleMessages(data.Messages, messageHandler, callback);
         }
     });
+
+    checkForMessages( messageQueueUrl)
+    .then(function( messages ) {
+        return handleMessages(messages, messageHandler);
+    .then(function(data) {
+        callback(null, message);
+    }).catch( callback );
+
 };

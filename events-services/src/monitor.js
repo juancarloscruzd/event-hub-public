@@ -26,46 +26,37 @@ const invokeListener = function ( messageQueueUrl, callback) {
     lambda.invoke(params, callback );  
 };
 
-const handleMessages = function (messages, messageHandler, callback) {
-    if (messages && messages.length > 0) {
-        messages.forEach( function(message) {
-            invokeMessageHandler(message, messageHandler, callback);
-        });
-    }
-};
-
-const listenPublishedEvents = function ( callback) {
-    invokeListener(PUBLISHED_QUEUE_URL, callback);
+//----------------------------
+// --- checks the queue of published events
+//----------------------------
+const listenPublishedEvents = function () {
+    return invokeListener(PUBLISHED_QUEUE_URL);
 }
 
-const listenDispatchedEvents = function ( callback) {
+//----------------------------
+// --- checks all the delivery  queues
+//----------------------------
+const listenDispatchedEvents = function () {
     var params = {
       QueueNamePrefix: eventUtils.SUBSCRIBER_QUEUE_PREFIX
     };
-    sqs.listQueues(params, function(err, data) {
-        if (err) {
-            callback("Error listing subscriber queues:\n" + err);
-            return;
-        }
+
+    sqs.listQueues(params).promise()
+    .then( function( data) {
         data.QueueUrls.forEach( function(queue){
-            invokeListener(queue, callback);
+            invokeListener(queue);
         });
     });
-    
 }
 
 
+//----------------------------
+// --- Handles the scheduled event 
+//----------------------------
 exports.handler = (event, context, callback) => {
-    var errors =[];
-    var cb = function( err, results) {
-        if(err) {
-            errors.push(err);
-        }
-    };
-    listenPublishedEvents( cb );
-    listenDispatchedEvents( cb );
-    for(var i=0; i < errors.length; i ++) {
-        console.log( "ERROR when invoking event listener: " + error[i]);
-    }
-    callback(null, true)
+
+//    console.log("Schedule Event received" );
+    listenPublishedEvents();
+    listenDispatchedEvents();
+    callback(null, event);
 };
