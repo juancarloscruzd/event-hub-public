@@ -61,13 +61,13 @@ Resources:
 
 Outputs: 
 
-    DispatcherLambdaID: 
-        Description: the ID for the DispatcherLambda
+    DeliveryLambdaID: 
+        Description: the ID for the DeliveryLambda
         Value: 
-            Ref: "DispatcherLambda"
-    DispatcherLambdaARN: 
-        Description: the ARN for the DispatcherLambda
+            Ref: "DeliveryLambda"
+    DeliveryLambdaARN: 
+        Description: the ARN for the DeliveryLambda
         Value: 
             Fn::GetAtt:
-                - "DispatcherLambda"
+                - "DeliveryLambda"
                 - "Arn"
