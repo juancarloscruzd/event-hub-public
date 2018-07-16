@@ -38,8 +38,8 @@ jobs:
           - v1-dependencies-
 
       # run tests!
-       - run: 
-           command: |
+      - run: 
+          command: |
             chmod +x events-services/tests.sh 
             events-services/tests.sh
 
