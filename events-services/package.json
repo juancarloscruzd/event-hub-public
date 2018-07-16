@@ -4,11 +4,17 @@
   "description": "Event manager services",
   "author": "Kiko Gatto",
   "license": "MIT",
+  "scripts": {
+    "test": "nyc --reporter=html --reporter=text jasmine"
+  },
   "dependencies": {
     "axios": "0.18.0",
     "bluebird": "3.5.0",
     "uuid": "3.2.1"
   },
   "devDependencies": {
+    "aws-sdk-mock": "^2.0.0",
+    "nyc": "^12.0.2",
+    "require-directory": "^2.1.1"
   }
 }

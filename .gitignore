@@ -71,3 +71,5 @@ crashlytics-build.properties
 .iml
 .classpath
 .project
+coverage
+.nyc_output

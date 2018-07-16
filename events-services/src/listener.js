@@ -1,7 +1,6 @@
 //----------------------------
 // --- Listener 
 //----------------------------
-
 'use strict';
 
 
@@ -13,67 +12,81 @@ AWS.config.update({region: AWS_REGION });
 AWS.config.setPromisesDependency(Promise);
 const eventUtils = require('./eventUtils.js');
 
-const sqs = new AWS.SQS();
-const lambda = new AWS.Lambda(;
+class Listener {
+    //----------------------------
+    // --- Constructs the Subscriber
+    //----------------------------
+    constructor( awsAccount ) {
+        this.lambda;
+        this.sqs;
+    }
 
+    //----------------------------
+    // --- Initializes the subscriber
+    //----------------------------
+    init() {
+        this.lambda = new AWS.Lambda();
+        this.sqs = new AWS.SQS();
+    }
 
-
-//----------------------------
-// --- Invokes the true handler for the listened message 
-//----------------------------
-const invokeMessageHandler = function (event, messageHandler) {
-    var params = {
-        FunctionName: messageHandler,
-        InvocationType: 'Listener event',
-        Payload: eventUtils.stringify(event)
+    //----------------------------
+    // --- Invokes the true handler for the listened message 
+    //----------------------------
+    invokeMessageHandler (event, messageHandler) {
+        var params = {
+            FunctionName: messageHandler,
+            InvocationType: 'Listener event',
+            Payload: eventUtils.stringify(event)
+        };
+        return this.lambda.invoke( params ).promise();
     };
-    return lambda.invoke( params ).promise();
-};
 
-//----------------------------
-// --- For each message, invokes its handler 
-//----------------------------
-const handleMessages = function (messages, messageHandler) {
-    if (messages) {
+    //----------------------------
+    // --- For each message, invokes its handler 
+    //----------------------------
+    handleMessages (messages, messageHandler) {
+        let ps = [];
+        var self = this;
+        if (!messages ) {
+            return Promise.resolve(true);
+        }
         messages.forEach( function(message) {
-            invokeMessageHandler(message, messageHandler);
+            ps.push(self.invokeMessageHandler(message, messageHandler));
+        });
+        return Promise.all(ps);
+    };
+
+    //----------------------------
+    // --- Checks for new messages on the queue 
+    //----------------------------
+    checkForMessages ( queueUrl ) {
+        var params = {
+            QueueUrl: queueUrl,
+            MaxNumberOfMessages: 10
+        };
+        return this.sqs.receiveMessage(params).promise()
+        .then( function(data){
+            return data.Messages;
         });
     }
-};
 
-//----------------------------
-// --- Checks for new messages on the queue 
-//----------------------------
-const checkForMessages = function ( queueUrl ) {
-    var params = {
-        QueueUrl: queueUrl,
-        MaxNumberOfMessages: 10
-    };
-    return sqs.receiveMessage(params).promise()
-    .then( function(data){
-        return data.Messages;
-    });
-}
+
+};
+exports.Listener = Listener;
 
 //----------------------------
 // --- Handles the incoming messages
 //----------------------------
 exports.handler = (message, context, callback) => {
-    var messageQueueUrl = event.Body.Messages.messageQueueUrl;
+    var messageQueueUrl =JSON.parse( message.Body.Message).messageQueueUrl;
 
-    checkForMessages( messageQueueUrl, function(err, data) {
-        if (err) {
-            callback("Error receiving messages:\n" + err);
-        } else {
-            handleMessages(data.Messages, messageHandler, callback);
-        }
-    });
-
-    checkForMessages( messageQueueUrl)
-    .then(function( messages ) {
-        return handleMessages(messages, messageHandler);
-    .then(function(data) {
-        callback(null, message);
+    let messageHandler = "dispatcher";
+    let listener = new Listener();
+    listener.init();
+    listener.checkForMessages( messageQueueUrl).then(function( messages ) {
+        return listener.handleMessages(messages, messageHandler);
+    }).then(function(data) {
+        callback(undefined, message);
     }).catch( callback );
 
 };
