@@ -38,8 +38,10 @@ jobs:
           - v1-dependencies-
 
       # run tests!
-     - chmod +x events-services/tests.sh 
-     - events-services/tests.sh
+       - run: 
+           command: |
+            chmod +x events-services/tests.sh 
+            events-services/tests.sh
 
       # - run: sudo apt-get update && sudo apt-get install -qq -y python-pip libpython-dev
       # - run: curl -O https://bootstrap.pypa.io/get-pip.py && sudo python get-pip.py
