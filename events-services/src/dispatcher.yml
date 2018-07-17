@@ -97,7 +97,6 @@ PublishedEventSourceMapping:
       Fn::GetAtt: 
         - "DispatcherLambda"
         - "Arn"
-    StartingPosition: "LATEST"
 
     # MonitorLambdaRole: 
     #     Type: AWS::IAM::Role

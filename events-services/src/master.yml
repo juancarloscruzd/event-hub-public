@@ -41,7 +41,7 @@ Resources:
                 - { StackName: !Ref EnvironmentName }
             Parameters:
                 EnvironmentName:    !Ref EnvironmentName
-                PublishedQueueARN:    !GetAtt Publisher.Outputs.PublishedQueueARN
+                PublishedQueueARN:  !GetAtt Publisher.Outputs.PublishedQueueARN
 
 
     # Delivery:
