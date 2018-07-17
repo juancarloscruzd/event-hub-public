@@ -54,7 +54,7 @@ Resources:
                   - Effect: Allow
                     Action: 
                     - sqs:ReceiveMessage
-                    Resource: *
+                    Resource: "*"
             - PolicyName: PublishQueueCleaner
               PolicyDocument: 
                   Statement: 
