@@ -136,7 +136,7 @@ Resources:
 
     PublishDeployment: 
         Type: "AWS::ApiGateway::Deployment"
-        DependsOn: !Ref PublishMethod
+        DependsOn: "PublishMethod"
         Properties: 
             RestApiId: !Ref PublishApi
             Description: "Publish api deployment"
