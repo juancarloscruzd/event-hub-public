@@ -147,9 +147,8 @@ Resources:
           CacheClusterEnabled: false
           DeploymentId: !Ref PublishDeployment
           Description: "Deploys the publish API"
-          DocumentationVersion: String
           RestApiId: !Ref PublishApi
-          StageName: beta
+          StageName: "beta"
 
     PermissionForAPIInvokeLambda: 
         Type: "AWS::Lambda::Permission"
