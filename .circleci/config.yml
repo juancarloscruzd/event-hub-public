@@ -22,7 +22,7 @@ jobs:
       ENTERPRISE_NAME: de
       #BUILD_NUM: ${CIRCLE_BUILD_NUM}
       #BUILD_NUM: 9
-      BUCKET_NAME: de-events
+#      BUCKET_NAME: de-events
 
       #TEST_BUCKET_NAME: ${ENTERPRISE_NAME}-${BUILD_NUM}-events
       #TEST_BUCKET_NAME: de-9-events
@@ -46,13 +46,11 @@ jobs:
             chmod +x events-services/tests.sh 
             events-services/tests.sh
 
-      # Setup testing environment
-      - run: export BUILD_NUM=${CIRCLE_BUILD_NUM}
-      - run: export BUCKET_NAME=${ENTERPRISE_NAME}-${BUILD_NUM}-events
-
       # deploy cert environment !
       - run: 
           command: |
+            export BUILD_NUM=${CIRCLE_BUILD_NUM}
+            export BUCKET_NAME=${ENTERPRISE_NAME}-${BUILD_NUM}-events
             chmod +x events-services/deploy.sh 
             events-services/deploy.sh
 
