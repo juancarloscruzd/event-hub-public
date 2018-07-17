@@ -48,6 +48,13 @@ Resources:
                     - logs:CreateLogStream
                     - logs:PutLogEvents
                     Resource: arn:aws:logs:*:*:*
+            - PolicyName: sqs
+              PolicyDocument: 
+                  Statement: 
+                  - Effect: Allow
+                    Action: 
+                    - sqs:ReceiveMessage
+                    Resource: *
             - PolicyName: PublishQueueCleaner
               PolicyDocument: 
                   Statement: 
