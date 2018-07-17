@@ -53,6 +53,12 @@ Resources:
                   Statement: 
                   - Effect: Allow
                     Action: 
+                    - sqs:ListQueues
+                    - sqs:GetQueueAttributes
+                    - sqs:CreateQueue
+                    - sqs:SetQueueAttributes
+                    - sqs:TagQueue
+                    - sqs:UntagQueue
                     - sqs:ReceiveMessage
                     Resource: "*"
             - PolicyName: PublishQueueCleaner
