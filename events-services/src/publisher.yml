@@ -97,20 +97,20 @@ Resources:
                     RECEIVED_EVENTS_ARN:  !Ref ReceivedTopic
 
 
-    EventsApi:
+    PublishApi:
         Type: AWS::ApiGateway::RestApi
         Properties:
-            Name: EventsApi
+            Name: PublishApi
 
 
     PublishResource: 
         Type: "AWS::ApiGateway::Resource"
         Properties: 
             RestApiId: 
-                Ref: "EventsApi"
+                Ref: "PublishApi"
             ParentId: 
                 Fn::GetAtt: 
-                    - "EventsApi"
+                    - "PublishApi"
                     - "RootResourceId"
             PathPart: "publish"
 
@@ -118,7 +118,7 @@ Resources:
         Type: AWS::ApiGateway::Method
         Properties:
             OperationName: "PublishEvents"
-            RestApiId: !Ref EventsApi
+            RestApiId: !Ref PublishApi
             ResourceId: !Ref PublishResource
             HttpMethod: POST      
             AuthorizationType: NONE
@@ -133,6 +133,23 @@ Resources:
                 - StatusCode: 200
                 - StatusCode: 500
                 PassthroughBehavior: WHEN_NO_MATCH
+
+    PublishDeployment: 
+        Type: "AWS::ApiGateway::Deployment"
+        DependsOn: !Ref PublishMethod
+        Properties: 
+            RestApiId: !Ref PublishApi
+            Description: "Publish api deployment"
+
+    PublishStage:
+        Type: "AWS::ApiGateway::Stage"
+        Properties:
+          CacheClusterEnabled: false
+          DeploymentId: !Ref PublishDeployment
+          Description: "Deploys the publish API"
+          DocumentationVersion: String
+          RestApiId: !Ref PublishApi
+          StageName: beta
 
     PermissionForAPIInvokeLambda: 
         Type: "AWS::Lambda::Permission"

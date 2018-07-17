@@ -37,15 +37,25 @@ jobs:
           # fallback to using the latest cache if no exact match is found
           - v1-dependencies-
 
+      - run: sudo apt-get update && sudo apt-get install -qq -y python-pip libpython-dev
+      - run: curl -O https://bootstrap.pypa.io/get-pip.py && sudo python get-pip.py
+      - run: sudo pip install -q awscli --upgrade
       # run tests!
       - run: 
           command: |
             chmod +x events-services/tests.sh 
             events-services/tests.sh
 
-      # - run: sudo apt-get update && sudo apt-get install -qq -y python-pip libpython-dev
-      # - run: curl -O https://bootstrap.pypa.io/get-pip.py && sudo python get-pip.py
-      # - run: sudo pip install -q awscli --upgrade
+      # Setup testing environment
+      - run: export BUILD_NUM=${CIRCLE_BUILD_NUM}
+      - run: export BUCKET_NAME=${ENTERPRISE_NAME}-${BUILD_NUM}-events
+
+      # deploy cert environment !
+      - run: 
+          command: |
+            chmod +x events-services/deploy.sh 
+            events-services/deploy.sh
+
       
       # - run: 
       #     command: |
