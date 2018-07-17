@@ -1,4 +1,4 @@
 cd events-services
-npm install
+sudo npm install
 npm test
 cd ../

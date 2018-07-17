@@ -33,16 +33,15 @@ Resources:
 
 
 
-    # Dispatcher:
-    #     Type: AWS::CloudFormation::Stack
-    #     Properties:
-    #         TemplateURL: !Sub 
-    #             - https://s3.amazonaws.com/${StackName}-events/dispatcher.yml 
-    #             - { StackName: !Ref EnvironmentName }
-    #         Parameters:
-    #             EnvironmentName:    !Ref EnvironmentName
-    #             PublishedQueueURL:    !GetAtt Publisher.Outputs.PublishedQueueURL
-    #             PublishedQueueARN:    !GetAtt Publisher.Outputs.PublishedQueueARN
+    Dispatcher:
+        Type: AWS::CloudFormation::Stack
+        Properties:
+            TemplateURL: !Sub 
+                - https://s3.amazonaws.com/${StackName}-events/dispatcher.yml 
+                - { StackName: !Ref EnvironmentName }
+            Parameters:
+                EnvironmentName:    !Ref EnvironmentName
+                PublishedQueueARN:    !GetAtt Publisher.Outputs.PublishedQueueARN
 
 
     # Delivery:

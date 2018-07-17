@@ -34,16 +34,6 @@ class Dispatcher {
         this.sqs = new AWS.SQS();
     }
     //--------------------------------------------------------
-    // --- Removes the message from the queue 
-    //--------------------------------------------------------
-    deleteMessage ( receiptHandle ) {
-        var params = {
-            ReceiptHandle: receiptHandle,
-            QueueUrl: this.PUBLISHED_QUEUE_URL
-        };
-        return this.sqs.deleteMessage(params).promise();
-    }
-    //--------------------------------------------------------
     // --- Dispatches the event to the topic corresponding to it's type 
     //--------------------------------------------------------
     dispatchEvent (event, topic) {
@@ -58,7 +48,7 @@ class Dispatcher {
     //--------------------------------------------------------
     // --- Sends the event to the catch all queue
     //--------------------------------------------------------
-    catchAll( event ) {
+    catch( event ) {
         var params = {
             MessageBody: eventUtils.stringify(event),
             QueueUrl: this.CATCHALL_QUEUE_URL
@@ -66,13 +56,16 @@ class Dispatcher {
         return this.sqs.sendMessage(params).promise();
     }
     //--------------------------------------------------------
-    // --- Dispatches the event 
+    // --- Dispatches the events
     //--------------------------------------------------------
-    dispatch (event) {
+    dispatchAll(events) {
         let ps = [];
         var self = this;
-        ps.push(this.catchAll( event ));
-        ps.push(this.dispatchEvent( event, event.eventType ));
+        for( var i = 0; i < events.length; i++) {
+            let event = events[i];
+            ps.push(this.catch( event ));
+            ps.push(this.dispatchEvent( event, event.eventType ));            
+        }
 
         return Promise.all(ps);
     }
@@ -85,24 +78,24 @@ exports.Dispatcher = Dispatcher;
 //----------------------------
 // --- Handles the incoming event 
 //----------------------------
-exports.handler = function(message, context, callback) {
-
-    var event = eventUtils.getOriginal(message);
-    if ( !event ) {
-        callback("Message is not an Event!" , message );
-        return;
-    }
+exports.handler = function(sqsEvent, context, callback) {
     let dispatcher = new Dispatcher("548067008624");
     dispatcher.init();
+    var errors = [];
+    var events = [];
+    let records = sqsEvent.Records;
 
-    dispatcher.dispatch( event ).then(function(data) {
-        if(message.ReceiptHandle) {
-            return dispatcher.deleteMessage(message.ReceiptHandle)
+    for( var i = 0; i < records.length; i++) {
+        var event = eventUtils.getOriginal( JSON.parse(records[i].body));
+        if ( !event ) {
+            errors.push("Message "+i+"is not an Event: " + records[i] );
+        } else {
+            events.push(event);
         }
-        return false;
-    })
-    .then( function(data) {
-        callback(undefined, event);
+    }
+
+    dispatcher.dispatchAll( events ).then( function(data) {
+        callback(undefined, events);
     })
     .catch( callback );
 };

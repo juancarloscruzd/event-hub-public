@@ -43,6 +43,7 @@ module.exports = {
 		if( event.Body ) {
 			return module.exports.getOriginal( JSON.parse( event.Body ));
 		}
+		
 		return null;
 	},
 
