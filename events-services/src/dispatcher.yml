@@ -89,14 +89,14 @@ Resources:
                     CATCHALL_QUEUE_URL: !GetAtt CatchAll.Outputs.CatchAllQueueURL
 
 
-PublishedEventSourceMapping: 
-  Type: "AWS::Lambda::EventSourceMapping"
-  Properties: 
-    EventSourceArn: !Ref PublishedQueueARN
-    FunctionName: 
-      Fn::GetAtt: 
-        - "DispatcherLambda"
-        - "Arn"
+    PublishedEventSourceMapping: 
+        Type: "AWS::Lambda::EventSourceMapping"
+        Properties: 
+            EventSourceArn: !Ref PublishedQueueARN
+            FunctionName: 
+                Fn::GetAtt: 
+                    - "DispatcherLambda"
+                    - "Arn"
 
     # MonitorLambdaRole: 
     #     Type: AWS::IAM::Role
