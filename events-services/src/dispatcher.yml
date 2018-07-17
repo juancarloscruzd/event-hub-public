@@ -105,6 +105,8 @@ Resources:
     PublishedEventSourceMapping: 
         Type: "AWS::Lambda::EventSourceMapping"
         Properties: 
+            BatchSize: 10
+            Enabled: true
             EventSourceArn: !Ref PublishedQueueARN
             FunctionName: 
                 Fn::GetAtt: 
