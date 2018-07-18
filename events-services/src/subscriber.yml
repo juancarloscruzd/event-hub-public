@@ -107,6 +107,22 @@ Resources:
                 - StatusCode: 500
                 PassthroughBehavior: WHEN_NO_MATCH
 
+    SubscriberDeployment: 
+        Type: "AWS::ApiGateway::Deployment"
+        DependsOn: "SubscribeMethod"
+        Properties: 
+            RestApiId: !Ref SubscriberRestApi
+            Description: "Subscriber api deployment"
+
+    SubscriberStage:
+        Type: "AWS::ApiGateway::Stage"
+        Properties:
+          CacheClusterEnabled: false
+          DeploymentId: !Ref SubscriberDeployment
+          Description: "Deploys the subscriber API"
+          RestApiId: !Ref SubscriberRestApi
+          StageName: "beta"
+
     PermissionForAPIInvokeLambda: 
         Type: "AWS::Lambda::Permission"
         Properties: 
