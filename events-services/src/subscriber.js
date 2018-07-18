@@ -126,7 +126,7 @@ class Subscriber {
             "Version": "2008-10-17",
             "Id": queue.QueueArn + "/SQSDefaultPolicy",
             "Statement": [{
-                "Sid": "Sid" + topic,
+                "Sid": "Sid" + new Date().getTime(),
                 "Effect": "Allow",
                 "Principal": {
                     "AWS": "*"
@@ -135,7 +135,7 @@ class Subscriber {
                 "Resource": queue.QueueArn,
                 "Condition": {
                     "ArnEquals": {
-                        "aws:SourceArn": topic
+                        "aws:SourceArn": topic.TopicArn
                     }
                 }
             }]
