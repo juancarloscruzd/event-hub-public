@@ -29,13 +29,12 @@ describe("publisher", function() {
 		let event = {};
 		let time = new Date().getTime();
 		publisher.prepareEvent(event);
-		expect(time - event.publishDate).toBeLessThan(100);
-		expect(time - event.publishDate).toBe(0);
+		expect(event.publishDate - time).toBeLessThan(10);
 		expect(event.publisher).toBe("PublisherLambda");
 		expect(event.publisher).toBeDefined();
 	});
 
-    it("should publish the received event", function(done) {
+    it("should publish the received event to a catchAll queue and to all existing topics", function(done) {
     	let done1 = false;
 		var event = {
 			eventType:"ThatCoolEventType",
@@ -52,18 +51,50 @@ describe("publisher", function() {
     		expect(data).toEqual(params);
 			var topic = {topicArn:'1234567'};
 			done1 = true;
-			cb(null,topic);
+			cb(undefined, topic);
 		};
+
 		AWS.mock('SNS', 'publish', publish);
 		publisher.init();
-    	publisher.publishEvent(event).then( function(){
-    		expect(done1).toBeTruthy()
+    	publisher.publishEvent(event).then( function(res) {
+    		expect(done1).toBeTruthy();
+    		done();
+    	}).catch(function(e){
+    		console.log(e);
+    	});
+    });
+    it("should publish the received event to a catchAll queue only if topic does not exists", function(done) {
+    	let done1 = false;
+		var event = {
+			eventType:"ThatCoolEventType",
+			eventDate: new Date().getTime()
+		};
+
+    	let publish = function(data, cb){
+	        var params = {
+	            'TopicArn': "MyReceivedArn",
+	            'Subject': "ThatCoolEventType",
+	            'Message': eventUtils.stringify(event)
+	        };
+
+    		expect(data).toEqual(params);
+			var topic = {topicArn:'1234567'};
+			done1 = true;
+			cb("err", topic);
+		};
+
+		AWS.mock('SNS', 'publish', publish);
+		publisher.init();
+    	publisher.publishEvent(event).then( function(res) {
+    		expect(res).toBe("topic does not exist");
+    		expect(done1).toBeTruthy();
     		done();
     	}).catch(function(e){
     		console.log(e);
     	});
     });
 });
+
 describe("Handler", function() {
 	beforeEach(function() {
 		process.env.RECEIVED_EVENTS_ARN = "MyReceivedArn";

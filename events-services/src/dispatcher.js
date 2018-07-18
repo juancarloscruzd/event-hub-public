@@ -42,7 +42,6 @@ class Dispatcher {
             'Subject': event.eventType,
             'Message': eventUtils.stringify(event),
         };
-        console.log( params );
         return this.sns.publish(params).promise();
     }
 
@@ -87,7 +86,6 @@ exports.handler = function(sqsEvent, context, callback) {
     let records = sqsEvent.Records;
 
     for( var i = 0; i < records.length; i++) {
-        console.log(records[i]);
         var event = eventUtils.getOriginal( JSON.parse(records[i].body));
         if ( !event ) {
             errors.push("Message "+i+"is not an Event: " + records[i] );

@@ -171,14 +171,17 @@ describe("subscriber", function() {
 	            }
 	        };
 	        doneSetAttibute = true;
-    		expect(data).toEqual(params);
+	        var dataObj = JSON.parse(data.Attributes.Policy);
+
+    		expect(dataObj.Id).toEqual(attributes.Id);
+    		expect(dataObj.Statement[0].Condition).toEqual(attributes.Statement[0].Condition);
 			var result = {Attributes:{QueueArn:'myQueueArn'}};
 			cb(null, result);
 		};
 		AWS.mock('SQS', 'setQueueAttributes', setQueueAttributes);
 
 		testSubscriber.init();
-    	testSubscriber.setQueuePolicy('myTopic', {QueueUrl:'MyQueueUrl', QueueArn: 'myQueueArn'}).then( function(){
+    	testSubscriber.setQueuePolicy({TopicArn:'myTopic'}, {QueueUrl:'MyQueueUrl', QueueArn: 'myQueueArn'}).then( function(){
     		expect(doneSetAttibute).toBeTruthy();
     		done();
     	}).catch(function(e){

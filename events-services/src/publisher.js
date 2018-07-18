@@ -48,8 +48,10 @@ class Publisher {
             'Subject': event.eventType,
             'Message': eventUtils.stringify(event)
         };
-
-        return this.sns.publish(params).promise();
+        var prom = this.sns.publish(params).promise();
+        return prom.catch(function( err ){
+            return "topic does not exist";
+        });
     }
 };
 exports.Publisher = Publisher;
