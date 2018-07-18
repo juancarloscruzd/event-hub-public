@@ -42,6 +42,7 @@ class Dispatcher {
             'Subject': event.eventType,
             'Message': eventUtils.stringify(event),
         };
+        console.log( params );
         return this.sns.publish(params).promise();
     }
 
