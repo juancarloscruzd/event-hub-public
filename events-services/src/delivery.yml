@@ -1,73 +1,69 @@
 Description: >
 
-    This template deploys the EventServices Dispatcher Lambda function, responsible to route all received events to all subscribers.
+  This template deploys the EventServices Dispatcher Lambda function, responsible to route all received events to all subscribers.
 
-    Last Modified: 2018
-    Author: Kiko Gatto 
+  Last Modified: 2018
+  Author: Kiko Gatto 
 
 Parameters:
-
-    EnvironmentName:
-        Description: An environment name that will be prefixed to resource names
-        Type: String
+  EnvironmentName:
+    Description: An environment name that will be prefixed to resource names
+    Type: String
 
 Resources:
+  DeliveryLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: "/"
+      Policies:
+        - PolicyName: logs
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:*:*:*
+        - PolicyName: SubscriberQueueCleaner
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:DeleteMessage
+                Resource: "*"
 
-    DeliveryLambdaRole: 
-        Type: AWS::IAM::Role
-        Properties: 
-            AssumeRolePolicyDocument: 
-                Version: '2012-10-17'
-                Statement: 
-                - Effect: Allow
-                  Principal: 
-                      Service: lambda.amazonaws.com
-                  Action: 
-                       - sts:AssumeRole
-            Path: '/'
-            Policies: 
-            - PolicyName: logs
-              PolicyDocument: 
-                  Statement: 
-                  - Effect: Allow
-                    Action: 
-                    - logs:CreateLogGroup
-                    - logs:CreateLogStream
-                    - logs:PutLogEvents
-                    Resource: arn:aws:logs:*:*:*
-            - PolicyName: SubscriberQueueCleaner
-              PolicyDocument: 
-                  Statement: 
-                  - Effect: Allow
-                    Action: 
-                    - sqs:DeleteMessage
-                    Resource: "*"
+  DeliveryLambda:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Code:
+        S3Bucket: !Sub
+          - ${StackName}-events
+          - { StackName: !Ref EnvironmentName }
+        S3Key: "events.zip"
 
-    DeliveryLambda:
-        Type: "AWS::Lambda::Function"
-        Properties:
-            Code: 
-                S3Bucket: !Sub
-                  - ${StackName}-events 
-                  - { StackName: !Ref EnvironmentName }
-                S3Key: "events.zip"
+      Handler: src/delivery.handler
+      MemorySize: 128
+      Role: !Sub ${DeliveryLambdaRole.Arn}
+      Runtime: nodejs8.10
+      Timeout: 60
 
-            Handler: events-services/src/delivery.handler
-            MemorySize: 128
-            Role: !Sub ${DeliveryLambdaRole.Arn}
-            Runtime: nodejs6.10
-            Timeout: 60
-
-
-Outputs: 
-
-    DeliveryLambdaID: 
-        Description: the ID for the DeliveryLambda
-        Value: 
-            Ref: "DeliveryLambda"
-    DeliveryLambdaARN: 
-        Description: the ARN for the DeliveryLambda
-        Value: 
-            Fn::GetAtt:
-                - "DeliveryLambda"
-                - "Arn"
+Outputs:
+  DeliveryLambdaID:
+    Description: the ID for the DeliveryLambda
+    Value:
+      Ref: "DeliveryLambda"
+  DeliveryLambdaARN:
+    Description: the ARN for the DeliveryLambda
+    Value:
+      Fn::GetAtt:
+        - "DeliveryLambda"
+        - "Arn"

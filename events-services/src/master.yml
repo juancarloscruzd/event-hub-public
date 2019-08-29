@@ -1,69 +1,60 @@
 Description: >
 
-    This template deploys the EventServices.
+  This template deploys the EventServices.
 
-    Last Modified: 2018
-    Author: Kiko Gatto 
+  Last Modified: 2018
+  Author: Kiko Gatto 
 
 Parameters:
-
-    EnvironmentName:
-        Description: An environment name that will be prefixed to resource names
-        Type: String
-
+  EnvironmentName:
+    Description: An environment name that will be prefixed to resource names
+    Type: String
 
 Resources:
-    Subscriber:
-        Type: AWS::CloudFormation::Stack
-        Properties:
-            TemplateURL: !Sub 
-                - https://s3.amazonaws.com/${StackName}-events/subscriber.yml 
-                - { StackName: !Ref EnvironmentName }
-            Parameters:
-                EnvironmentName:   !Ref EnvironmentName
+  Subscriber:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub
+        - https://s3.amazonaws.com/${StackName}-events/subscriber.yml
+        - { StackName: !Ref EnvironmentName }
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
 
-    Publisher:
-        Type: AWS::CloudFormation::Stack
-        Properties:
-            TemplateURL: !Sub 
-                - https://s3.amazonaws.com/${StackName}-events/publisher.yml 
-                - { StackName: !Ref EnvironmentName }
-            Parameters:
-                EnvironmentName:    !Ref EnvironmentName
+  Publisher:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub
+        - https://s3.amazonaws.com/${StackName}-events/publisher.yml
+        - { StackName: !Ref EnvironmentName }
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
 
-
-
-    Dispatcher:
-        Type: AWS::CloudFormation::Stack
-        Properties:
-            TemplateURL: !Sub 
-                - https://s3.amazonaws.com/${StackName}-events/dispatcher.yml 
-                - { StackName: !Ref EnvironmentName }
-            Parameters:
-                EnvironmentName:    !Ref EnvironmentName
-                PublishedQueueARN:  !GetAtt Publisher.Outputs.PublishedQueueARN
-
-
-    # Delivery:
-    #     Type: AWS::CloudFormation::Stack
-    #     Properties:
-    #         TemplateURL: !Sub 
-    #             - https://s3.amazonaws.com/${StackName}-events/delivery.yml 
-    #             - { StackName: !Ref EnvironmentName }
-    #         Parameters:
-    #             EnvironmentName:    !Ref EnvironmentName
-
-
-    # Listener:
-    #     Type: AWS::CloudFormation::Stack
-    #     Properties:
-    #         TemplateURL: !Sub 
-    #             - https://s3.amazonaws.com/${StackName}-events/listener.yml 
-    #             - { StackName: !Ref EnvironmentName }
-    #         Parameters:
-    #             EnvironmentName:    !Ref EnvironmentName
-    #             PublishedQueueURL:    !Ref PublishedQueueURL
-    #             PublishedQueueARN:    !Ref PublishedQueueARN
-    #             DispatcherLambdaARN:  !Sub ${DispatcherLambda.Arn}
-
-
+  Dispatcher:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub
+        - https://s3.amazonaws.com/${StackName}-events/dispatcher.yml
+        - { StackName: !Ref EnvironmentName }
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        PublishedQueueARN: !GetAtt Publisher.Outputs.PublishedQueueARN
+        PublishedQueueURL: !GetAtt Publisher.Outputs.PublishedQueueURL
+  # Delivery:
+  #     Type: AWS::CloudFormation::Stack
+  #     Properties:
+  #         TemplateURL: !Sub
+  #             - https://s3.amazonaws.com/${StackName}-events/delivery.yml
+  #             - { StackName: !Ref EnvironmentName }
+  #         Parameters:
+  #             EnvironmentName:    !Ref EnvironmentName
+  # Listener:
+  #     Type: AWS::CloudFormation::Stack
+  #     Properties:
+  #         TemplateURL: !Sub
+  #             - https://s3.amazonaws.com/${StackName}-events/listener.yml
+  #             - { StackName: !Ref EnvironmentName }
+  #         Parameters:
+  #             EnvironmentName:    !Ref EnvironmentName
+  #             PublishedQueueURL:    !Ref PublishedQueueURL
+  #             PublishedQueueARN:    !Ref PublishedQueueARN
+  #             DispatcherLambdaARN:  !Sub ${DispatcherLambda.Arn}

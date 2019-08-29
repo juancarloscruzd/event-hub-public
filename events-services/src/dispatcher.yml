@@ -1,195 +1,200 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: >
 
-    This template deploys the EventServices Dispatcher Lambda function, responsible to route all received events to all subscribers.
+  This template deploys the EventServices Dispatcher Lambda function, responsible to route all received events to all subscribers.
 
-    Last Modified: 2018
-    Author: Kiko Gatto 
+  Last Modified: 2018
+  Author: Kiko Gatto 
 
 Parameters:
-
-    EnvironmentName:
-        Description: An environment name that will be prefixed to resource names
-        Type: String
-    PublishedQueueARN:
-        Description: The published event queue ARN, to authorize the Role
-        Type: String
+  EnvironmentName:
+    Description: An environment name that will be prefixed to resource names
+    Type: String
+  PublishedQueueARN:
+    Description: The published event queue ARN, to authorize the Role
+    Type: String
+  PublishedQueueURL:
+    Description: The published event queue URL, to set up the dispatcher lambda
+    Type: String
 
 Resources:
+  CatchAll:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub
+        - https://s3.amazonaws.com/${StackName}-events/catchAll.yml
+        - { StackName: !Ref EnvironmentName }
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
 
-    CatchAll:
-        Type: AWS::CloudFormation::Stack
-        Properties:
-            TemplateURL: !Sub 
-                - https://s3.amazonaws.com/${StackName}-events/catchAll.yml 
-                - { StackName: !Ref EnvironmentName }
-            Parameters:
-                EnvironmentName:    !Ref EnvironmentName
+  DispatcherLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: "/"
+      Policies:
+        - PolicyName: logs
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:*:*:*
+        - PolicyName: sqs
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:ListQueues
+                  - sqs:GetQueueAttributes
+                  - sqs:CreateQueue
+                  - sqs:SetQueueAttributes
+                  - sqs:TagQueue
+                  - sqs:UntagQueue
+                  - sqs:ReceiveMessage
+                Resource: "*"
+        - PolicyName: PublishQueueCleaner
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:DeleteMessage
+                Resource: !Ref PublishedQueueARN
+        - PolicyName: CatchAllQueueDelivery
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                Resource: !GetAtt CatchAll.Outputs.CatchAllQueueARN
+        - PolicyName: EventTopicPublish
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: "*"
+        - PolicyName: firehose
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - firehose:PutRecord
+                Resource: arn:aws:firehose:*:*:*
 
-    DispatcherLambdaRole: 
-        Type: AWS::IAM::Role
-        Properties: 
-            AssumeRolePolicyDocument: 
-                Version: '2012-10-17'
-                Statement: 
-                - Effect: Allow
-                  Principal: 
-                      Service: lambda.amazonaws.com
-                  Action: 
-                       - sts:AssumeRole
-            Path: '/'
-            Policies: 
-            - PolicyName: logs
-              PolicyDocument: 
-                  Statement: 
-                  - Effect: Allow
-                    Action: 
-                    - logs:CreateLogGroup
-                    - logs:CreateLogStream
-                    - logs:PutLogEvents
-                    Resource: arn:aws:logs:*:*:*
-            - PolicyName: sqs
-              PolicyDocument: 
-                  Statement: 
-                  - Effect: Allow
-                    Action: 
-                    - sqs:ListQueues
-                    - sqs:GetQueueAttributes
-                    - sqs:CreateQueue
-                    - sqs:SetQueueAttributes
-                    - sqs:TagQueue
-                    - sqs:UntagQueue
-                    - sqs:ReceiveMessage
-                    Resource: "*"
-            - PolicyName: PublishQueueCleaner
-              PolicyDocument: 
-                  Statement: 
-                  - Effect: Allow
-                    Action: 
-                    - sqs:DeleteMessage
-                    Resource: !Ref PublishedQueueARN
-            - PolicyName: CatchAllQueueDelivery
-              PolicyDocument: 
-                  Statement: 
-                  - Effect: Allow
-                    Action: 
-                    - sqs:SendMessage
-                    Resource: !GetAtt CatchAll.Outputs.CatchAllQueueARN
-            - PolicyName: EventTopicPublish
-              PolicyDocument: 
-                  Statement: 
-                  - Effect: Allow
-                    Action:
-                    - sns:Publish
-                    Resource: "*"
+  DispatcherLambda:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Code:
+        S3Bucket: !Sub
+          - ${StackName}-events
+          - { StackName: !Ref EnvironmentName }
+        S3Key: "events.zip"
 
-    DispatcherLambda:
-        Type: "AWS::Lambda::Function"
-        Properties:
-            Code: 
-                S3Bucket: !Sub
-                  - ${StackName}-events 
-                  - { StackName: !Ref EnvironmentName }
-                S3Key: "events.zip"
+      Handler: events-services/src/dispatcher.handler
+      MemorySize: 128
+      Role: !Sub ${DispatcherLambdaRole.Arn}
+      Runtime: nodejs8.10
+      Timeout: 60
+      Environment:
+        Variables:
+          CATCHALL_QUEUE_URL: !GetAtt CatchAll.Outputs.CatchAllQueueURL
+          PUBLISHED_QUEUE_URL: !Ref PublishedQueueURL
+          AWS_ACCOUNTID: !Ref "AWS::AccountId"
 
-            Handler: events-services/src/dispatcher.handler
-            MemorySize: 128
-            Role: !Sub ${DispatcherLambdaRole.Arn}
-            Runtime: nodejs6.10
-            Timeout: 60
-            Environment:
-                Variables:
-                    CATCHALL_QUEUE_URL: !GetAtt CatchAll.Outputs.CatchAllQueueURL
-
-
-    PublishedEventSourceMapping: 
-        Type: "AWS::Lambda::EventSourceMapping"
-        Properties: 
-            BatchSize: 10
-            Enabled: true
-            EventSourceArn: !Ref PublishedQueueARN
-            FunctionName: 
-                Fn::GetAtt: 
-                    - "DispatcherLambda"
-                    - "Arn"
-
-    # MonitorLambdaRole: 
-    #     Type: AWS::IAM::Role
-    #     Properties: 
-    #         AssumeRolePolicyDocument: 
-    #             Version: '2012-10-17'
-    #             Statement: 
-    #             - Effect: Allow
-    #               Principal: 
-    #                   Service: lambda.amazonaws.com
-    #               Action: 
-    #                    - sts:AssumeRole
-    #         Path: '/'
-    #         Policies: 
-    #         - PolicyName: logs
-    #           PolicyDocument: 
-    #               Statement: 
-    #               - Effect: Allow
-    #                 Action: 
-    #                 - logs:CreateLogGroup
-    #                 - logs:CreateLogStream
-    #                 - logs:PutLogEvents
-    #                 Resource: arn:aws:logs:*:*:*
-    #         - PolicyName: sqs
-    #           PolicyDocument: 
-    #               Statement: 
-    #               - Effect: Allow
-    #                 Action: 
-    #                 - sqs:ListQueues
-    #                 Resource: *
-    #         - PolicyName: lambda
-    #           PolicyDocument: 
-    #               Statement: 
-    #               - Effect: Allow
-    #                 Action: 
-    #                 - lambda:InvokeFunction
-    #                 Resource: !Ref ListenerLambdaARN
-    # MonitorLambda:
-    #     Type: "AWS::Lambda::Function"
-    #     Properties:
-    #         Code: 
-    #             S3Bucket: !Sub
-    #               - ${StackName}-events 
-    #               - { StackName: !Ref EnvironmentName }
-    #             S3Key: "events.zip"
-
-    #         Handler: events-services/src/monitor.handler
-    #         MemorySize: 128
-    #         Role: !Sub ${MonitorLambdaRole.Arn}
-    #         Runtime: nodejs6.10
-    #         Timeout: 60
-    #         Environment:
-    #             Variables:
-    #                 PUBLISHED_QUEUE_URL: !Ref PublishedQueueURL
-    #                 LISTENER_LAMBDA_ARN : !Ref ListenerLambdaARN
-
-    # ScheduledRule: 
-    #     Type: "AWS::Events::Rule"
-    #     Properties: 
-    #         Description: "ScheduledRule"
-    #         ScheduleExpression: "rate(1 minute)"
-    #         State: "ENABLED"
-    #         Targets: 
-    #           - 
-    #             Arn: 
-    #               Fn::GetAtt: 
-    #                 - "MonitorLambda"
-    #                 - "Arn"
-    #             Id: "TargetFunctionV1"
-
-    # PermissionForEventsToInvokeLambda: 
-    #     Type: "AWS::Lambda::Permission"
-    #     Properties: 
-    #         FunctionName: 
-    #             Ref: "MonitorLambda"
-    #         Action: "lambda:InvokeFunction"
-    #         Principal: "events.amazonaws.com"
-    #         SourceArn: 
-    #             Fn::GetAtt: 
-    #               - "ScheduledRule"
-    #               - "Arn"
+  PublishedEventSourceMapping:
+    Type: "AWS::Lambda::EventSourceMapping"
+    Properties:
+      BatchSize: 10
+      Enabled: true
+      EventSourceArn: !Ref PublishedQueueARN
+      FunctionName:
+        Fn::GetAtt:
+          - "DispatcherLambda"
+          - "Arn"
+  # MonitorLambdaRole:
+  #     Type: AWS::IAM::Role
+  #     Properties:
+  #         AssumeRolePolicyDocument:
+  #             Version: '2012-10-17'
+  #             Statement:
+  #             - Effect: Allow
+  #               Principal:
+  #                   Service: lambda.amazonaws.com
+  #               Action:
+  #                    - sts:AssumeRole
+  #         Path: '/'
+  #         Policies:
+  #         - PolicyName: logs
+  #           PolicyDocument:
+  #               Statement:
+  #               - Effect: Allow
+  #                 Action:
+  #                 - logs:CreateLogGroup
+  #                 - logs:CreateLogStream
+  #                 - logs:PutLogEvents
+  #                 Resource: arn:aws:logs:*:*:*
+  #         - PolicyName: sqs
+  #           PolicyDocument:
+  #               Statement:
+  #               - Effect: Allow
+  #                 Action:
+  #                 - sqs:ListQueues
+  #                 Resource: *
+  #         - PolicyName: lambda
+  #           PolicyDocument:
+  #               Statement:
+  #               - Effect: Allow
+  #                 Action:
+  #                 - lambda:InvokeFunction
+  #                 Resource: !Ref ListenerLambdaARN
+  # MonitorLambda:
+  #     Type: "AWS::Lambda::Function"
+  #     Properties:
+  #         Code:
+  #             S3Bucket: !Sub
+  #               - ${StackName}-events
+  #               - { StackName: !Ref EnvironmentName }
+  #             S3Key: "events.zip"
+  #         Handler: events-services/src/monitor.handler
+  #         MemorySize: 128
+  #         Role: !Sub ${MonitorLambdaRole.Arn}
+  #         Runtime: nodejs6.10
+  #         Timeout: 60
+  #         Environment:
+  #             Variables:
+  #                 PUBLISHED_QUEUE_URL: !Ref PublishedQueueURL
+  #                 LISTENER_LAMBDA_ARN : !Ref ListenerLambdaARN
+  # ScheduledRule:
+  #     Type: "AWS::Events::Rule"
+  #     Properties:
+  #         Description: "ScheduledRule"
+  #         ScheduleExpression: "rate(1 minute)"
+  #         State: "ENABLED"
+  #         Targets:
+  #           -
+  #             Arn:
+  #               Fn::GetAtt:
+  #                 - "MonitorLambda"
+  #                 - "Arn"
+  #             Id: "TargetFunctionV1"
+  # PermissionForEventsToInvokeLambda:
+  #     Type: "AWS::Lambda::Permission"
+  #     Properties:
+  #         FunctionName:
+  #             Ref: "MonitorLambda"
+  #         Action: "lambda:InvokeFunction"
+  #         Principal: "events.amazonaws.com"
+  #         SourceArn:
+  #             Fn::GetAtt:
+  #               - "ScheduledRule"
+  #               - "Arn"
