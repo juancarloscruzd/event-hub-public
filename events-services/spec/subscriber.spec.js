@@ -4,6 +4,8 @@ var subs = require("../src/subscriber");
 var testSubscriber;
 AWS.Promise = Promise;
 
+const currentEnv = process.env;
+
 describe("subscriber", function() {
   beforeEach(function() {
     testSubscriber = new subs.Subscriber();
@@ -316,8 +318,13 @@ describe("subscriber", function() {
   });
 });
 
-fdescribe("Subscriber Handler", function() {
+describe("Subscriber Handler", function() {
+  beforeEach(() => {
+    process.env = Object.assign({}, process.env, { AWS_REGION: "us-west-1" });
+  });
+
   afterEach(function() {
+    process.env = currentEnv;
     AWS.restore();
   });
 
@@ -356,32 +363,47 @@ fdescribe("Subscriber Handler", function() {
   });
 
   it("should receive a message and subscribe a subscriber to an eventType", function(donef) {
-    let done = [false, false, false, false, false, false, false];
-    let createTopic = function(data, cb) {
+    const done = [false, false, false, false, false, false, false, false];
+    const createdQueue = { QueueUrl: "MyQueueUrl", QueueArn: "myQueueArn" };
+    const createdDeliveryStream = { result: true };
+
+    const createTopic = function(data, cb) {
       done[0] = true;
       cb(null, { TopicArn: "1234567" });
     };
-    let tagQueue = function(data) {
+
+    const tagQueue = function(data) {
       done[1] = true;
     };
-    let createQueue = function(data, cb) {
+
+    const createQueue = function(data, cb) {
       done[2] = true;
-      cb(null, { QueueUrl: "MyQueueUrl" });
+      cb(null, createdQueue);
     };
 
-    let getQueueAttributes = function(data, cb) {
-      var loadedQueue = { Attributes: { QueueArn: "myQueueArn" } };
+    const getQueueAttributes = function(data, cb) {
       done[3] = true;
-      cb(null, loadedQueue);
+      cb(null, { Attributes: { QueueArn: "myQueueArn" } });
     };
-    let subscribe = function(data, cb) {
+
+    const subscribe = function(data, cb) {
       done[4] = true;
       cb(null, { result: "12345" });
     };
-    let setQueueAttributes = function(data, cb) {
-      var loadedQueue = { Attributes: { QueueArn: "myQueueArn" } };
+
+    const setQueueAttributes = function(data, cb) {
       done[5] = true;
-      cb(null, loadedQueue);
+      cb(null, { Attributes: { QueueArn: "myQueueArn" } });
+    };
+
+    const listDeliveryStreams = (data, cb) => {
+      done[6] = true;
+      cb(null, { DeliveryStreamNames: ["ds1", "ds2", "ds3"] });
+    };
+
+    const createDeliveryStream = (data, cb) => {
+      done[6] = true;
+      cb(null, createdDeliveryStream);
     };
 
     AWS.mock("SNS", "createTopic", createTopic);
@@ -390,6 +412,8 @@ fdescribe("Subscriber Handler", function() {
     AWS.mock("SQS", "getQueueAttributes", getQueueAttributes);
     AWS.mock("SNS", "subscribe", subscribe);
     AWS.mock("SQS", "setQueueAttributes", setQueueAttributes);
+    AWS.mock("Firehose", "listDeliveryStreams", listDeliveryStreams);
+    AWS.mock("Firehose", "createDeliveryStream", createDeliveryStream);
 
     let message = {
       eventType: "ThisCoolEventType",
@@ -397,9 +421,13 @@ fdescribe("Subscriber Handler", function() {
       notificationUrl: "http://my.notification.url"
     };
 
-    let cb = function(err, subscription) {
+    let cb = function(err, result) {
       expect(err).not.toBeDefined();
-      expect(subscription).toBe(message);
+      expect(result).toEqual({
+        request: message,
+        subscription: createdQueue,
+        deliveryStream: createdDeliveryStream
+      });
       done[6] = true;
       expect(done[0]).toBeTruthy();
       expect(done[1]).toBeTruthy();
