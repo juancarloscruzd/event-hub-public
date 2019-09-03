@@ -13,7 +13,8 @@ EVENTS = {
     "ACCOUNT_CREATION_ERROR": "accounts_application",
     "CREDIT_REQUESTED": "lending_application",
     "CREDIT_LIMIT_REACHED": "lending_application",
-    "SEND_SMS_NOTIFICATION": "notifier"
+    "SEND_SMS_NOTIFICATION": "notifier",
+    "SEND_LEAD_INFO": "loans_application"
 }
 
 

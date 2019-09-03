@@ -39,11 +39,10 @@ class Subscriber {
   //----------------------------
   subscribeToEventType(subscriber, eventType, notificationUrl) {
     let ps = [];
-    var self = this;
     ps.push(this.createEventTopic(eventType));
     ps.push(this.createSubscriberQueue(subscriber, notificationUrl));
-    return Promise.all(ps).then(function(results) {
-      return self.subscribeQueueToTopic(results[0], results[1]);
+    return Promise.all(ps).then(results => {
+      return this.subscribeQueueToTopic(results[0], results[1]);
     });
   }
 
@@ -106,8 +105,8 @@ class Subscriber {
       this.sns
         .subscribe(subscriptionParams)
         .promise()
-        .then(function() {
-          return self.setQueuePolicy(topic, queue);
+        .then(() => {
+          return this.setQueuePolicy(topic, queue);
         });
       return queue;
     });
