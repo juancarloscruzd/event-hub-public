@@ -8,7 +8,7 @@ jobs:
     docker:
       # specify the version you desire here
       - image: circleci/node:latest
-      
+
       # Specify service dependencies here if necessary
       # CircleCI maintains a library of pre-built images
       # documented at https://circleci.com/docs/2.0/circleci-images/
@@ -18,14 +18,14 @@ jobs:
 
     environment:
       # Customize the JVM maximum heap limit
-#      MAVEN_OPTS: -Xmx3200m
+      #      MAVEN_OPTS: -Xmx3200m
       ENTERPRISE_NAME: de
       #BUILD_NUM: ${CIRCLE_BUILD_NUM}
       #BUILD_NUM: 9
-#      BUCKET_NAME: de-events
+    #      BUCKET_NAME: de-events
 
-      #TEST_BUCKET_NAME: ${ENTERPRISE_NAME}-${BUILD_NUM}-events
-      #TEST_BUCKET_NAME: de-9-events
+    #TEST_BUCKET_NAME: ${ENTERPRISE_NAME}-${BUILD_NUM}-events
+    #TEST_BUCKET_NAME: de-9-events
 
     steps:
       - checkout
@@ -33,36 +33,35 @@ jobs:
       # Download and cache dependencies
       - restore_cache:
           keys:
-          - v1-dependencies-{{ checksum "pom.xml" }}
-          # fallback to using the latest cache if no exact match is found
-          - v1-dependencies-
+            - v1-dependencies-{{ checksum "pom.xml" }}
+            # fallback to using the latest cache if no exact match is found
+            - v1-dependencies-
 
       - run: sudo apt-get update && sudo apt-get install -qq -y python-pip libpython-dev
       - run: curl -O https://bootstrap.pypa.io/get-pip.py && sudo python get-pip.py
       - run: sudo pip install -q awscli --upgrade
       # run tests!
-      - run: 
+      - run:
           command: |
             chmod +x events-services/tests.sh 
             events-services/tests.sh
 
       # deploy cert environment !
-      - run: 
-          command: |
-            export BUILD_NUM=${CIRCLE_BUILD_NUM}
-            export BUCKET_NAME=${ENTERPRISE_NAME}-${BUILD_NUM}-events
-            chmod +x events-services/deploy.sh 
-            events-services/deploy.sh
+      # - run:
+      #     command: |
+      #       export BUILD_NUM=${CIRCLE_BUILD_NUM}
+      #       export BUCKET_NAME=${ENTERPRISE_NAME}-${BUILD_NUM}-events
+      #       chmod +x events-services/deploy.sh
+      #       events-services/deploy.sh
 
-      
-      # - run: 
+      # - run:
       #     command: |
       #       export BUILD_NUM=${CIRCLE_BUILD_NUM}
       #       export TEST_BUCKET_NAME=${ENTERPRISE_NAME}-${BUILD_NUM}-events
       #       # mvn dependency:go-offline
       #       # sudo apt-get -y -qq install awscli
       #       aws configure set default.region us-west-2
-      #       aws s3 mb s3://${TEST_BUCKET_NAME} 
+      #       aws s3 mb s3://${TEST_BUCKET_NAME}
       #       cd events-services
       #       npm install
       #       cd ../
@@ -74,13 +73,11 @@ jobs:
           paths:
             - ~/.m2
           key: v1-dependencies-{{ checksum "pom.xml" }}
-        
       # run tests!
-#      - chmod +x events-services/integration-tests.sh 
+#      - chmod +x events-services/integration-tests.sh
 #      - events-services/integration-tests.sh
-      #- run: mvn integration-test
+#- run: mvn integration-test
 #            for file in events-services/src/*.js; do zip ${file%.*}.zip $file; done
-
 
 # {
 #     "eventType":"testEventType",
