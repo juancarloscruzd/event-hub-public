@@ -1,124 +1,129 @@
-var AWS = require("aws-sdk-mock");
 const Promise = require("bluebird");
-var disp = require("../src/dispatcher");
-var testDispatcher;
-AWS.Promise = Promise;
+const AWS = require("aws-sdk-mock");
 const eventUtils = require("../src/eventUtils.js");
+const logger = require("../src/logger.js");
+const disp = require("../src/dispatcher");
 
-describe("Dispatcher", function() {
+AWS.Promise = Promise;
+let testDispatcher;
+
+describe("Dispatcher", () => {
   beforeEach(function() {
     process.env.PUBLISHED_QUEUE_URL = "PUBLISHED_QUEUE_URL";
     process.env.CATCHALL_QUEUE_URL = "CATCHALL_QUEUE_URL";
     process.env.AWS_ACCOUNTID = "myAwsAccountId";
     testDispatcher = new disp.Dispatcher();
   });
-  beforeEach(function() {
+
+  afterEach(function() {
     AWS.restore();
   });
 
-  it("should be construct an un-initialized publisher,", function() {
+  it("should be construct an un-initialized publisher,", () => {
     expect(testDispatcher.sns).not.toBeDefined();
     expect(testDispatcher.PUBLISHED_QUEUE_URL).toBe("PUBLISHED_QUEUE_URL");
     expect(testDispatcher.CATCHALL_QUEUE_URL).toBe("CATCHALL_QUEUE_URL");
     expect(testDispatcher.AWS_ACCOUNTID).toBe("myAwsAccountId");
   });
-  it("should dispatch an event to all it's subscribers (send to the eventType topic)", function(done) {
+
+  it("should dispatch an event to all it's subscribers (send to the eventType topic)", done => {
     let done1 = false;
-    var event = {
+    let event = {
       eventType: "ThatCoolEventType",
       eventDate: new Date().getTime()
     };
 
-    let publish = function(data, cb) {
-      var params = {
+    let publish = function(data, callback) {
+      let params = {
         TopicArn: "arn:aws:sns:undefined:myAwsAccountId:ThatCoolEventType",
         Subject: "ThatCoolEventType",
         Message: eventUtils.stringify(event)
       };
 
       expect(data).toEqual(params);
-      var result = {};
+      let result = {};
       done1 = true;
-      cb(null, result);
+      callback(null, result);
     };
+
     AWS.mock("SNS", "publish", publish);
-    testDispatcher.init();
+
+    testDispatcher.initialize();
     testDispatcher
-      .dispatchEvent(event, "ThatCoolEventType")
-      .then(function() {
+      .dispatchToEventsTopic(event, "ThatCoolEventType")
+      .then(() => {
         expect(done1).toBeTruthy();
         done();
       })
-      .catch(function(e) {
-        console.log(e);
-      });
+      .catch(err => logger.error(err));
   });
-  it("should send all events to a catch-all queue", function(done) {
+
+  it("should send all events to a catch-all queue", done => {
     let done1 = false;
-    var event = {
+    let event = {
       eventType: "ThatCoolEventType",
       eventDate: new Date().getTime()
     };
 
-    let sendMessage = function(data, cb) {
-      var params = {
+    let sendMessage = (data, callback) => {
+      let params = {
         MessageBody: eventUtils.stringify(event),
         QueueUrl: "CATCHALL_QUEUE_URL"
       };
 
       expect(data).toEqual(params);
-      var result = {};
+      let result = {};
       done1 = true;
-      cb(null, result);
+      callback(null, result);
     };
     AWS.mock("SQS", "sendMessage", sendMessage);
-    testDispatcher.init();
+    testDispatcher.initialize();
     testDispatcher
-      .catch(event)
-      .then(function() {
+      .dispatchToCatchAllQueue(event)
+      .then(() => {
         expect(done1).toBeTruthy();
         done();
       })
-      .catch(function(e) {
-        console.log(e);
-      });
+      .catch(err => logger.error(err));
   });
-  it("should dispatch an array of events to both catch all AND event topic for all subscribers", function(done) {
+
+  it("should dispatch an array of events to both catch all AND event topic for all subscribers", done => {
     let done1 = 0;
     let done2 = 0;
-    var events = [];
-    events.push({
-      eventType: "ThatCoolEventType",
-      eventDate: new Date().getTime(),
-      application: "app1"
-    });
-    events.push({
-      eventType: "ThatCoolEventType",
-      eventDate: new Date().getTime(),
-      application: "app2"
-    });
+    let events = [
+      {
+        eventType: "ThatCoolEventType",
+        eventDate: new Date().getTime(),
+        application: "app1"
+      },
+      {
+        eventType: "ThatCoolEventType",
+        eventDate: new Date().getTime(),
+        application: "app2"
+      }
+    ];
 
-    let sendMessage = function(data, cb) {
-      var result = {};
+    let sendMessage = (data, callback) => {
+      let result = {};
       done1++;
-      cb(null, result);
+      callback(null, result);
     };
 
-    let publish = function(data, cb) {
-      var result = {};
+    let publish = (data, callback) => {
+      let result = {};
       done2++;
-      cb(null, result);
+      callback(null, result);
     };
 
-    const putRecord = (data, cb) => {
-      cb(null, { RecordId: "12345" });
+    const putRecord = (data, callback) => {
+      callback(null, { RecordId: "12345" });
     };
 
     AWS.mock("SNS", "publish", publish);
     AWS.mock("SQS", "sendMessage", sendMessage);
     AWS.mock("Firehose", "putRecord", putRecord);
 
-    testDispatcher.init();
+    testDispatcher.initialize();
     testDispatcher
       .dispatchAll(events)
       .then(function() {
@@ -126,14 +131,14 @@ describe("Dispatcher", function() {
         expect(done2).toBe(2);
         done();
       })
-      .catch(function(e) {
-        console.log(e);
+      .catch(err => {
+        logger.error(err);
         done();
       });
   });
 });
 
-describe("Dispatcher Handler", function() {
+describe("Dispatcher Handler", () => {
   beforeEach(function() {
     process.env.CATCHALL_QUEUE_URL = "CATCHALL_QUEUE_URL";
     process.env.AWS_REGION = "us-west-2";
@@ -146,55 +151,57 @@ describe("Dispatcher Handler", function() {
   it("should be resilient to an incomplete message in the array", function() {
     let sqsEvent = { Records: [] };
 
-    let cb = function(err, event) {
+    // eslint-disable-next-line no-unused-vars
+    let callback = function(err, _event) {
       //expect(err).toBe("Message is not an Event!");
       expect(err).not.toBeDefined();
     };
     let context;
-    disp.handler(sqsEvent, context, cb);
+    disp.handler(sqsEvent, context, callback);
   });
 
-  it("should dispatch the event on the message to all subscribers and to catch all", function(donef) {
+  it("should dispatch the event on the message to all subscribers and to catch all", donef => {
     let done1 = 0;
     let done2 = 0;
-    var events = [];
-    events.push({
-      eventType: "ThatCoolEventType",
-      eventDate: new Date().getTime(),
-      application: "app1"
-    });
-    events.push({
-      eventType: "ThatCoolEventType",
-      eventDate: new Date().getTime(),
-      application: "app1"
-    });
-    events.push({
-      eventType: "ThatCoolEventType",
-      eventDate: new Date().getTime(),
-      application: "app1"
-    });
+    let events = [
+      {
+        eventType: "ThatCoolEventType",
+        eventDate: new Date().getTime(),
+        application: "app1"
+      },
+      {
+        eventType: "ThatCoolEventType",
+        eventDate: new Date().getTime(),
+        application: "app1"
+      },
+      {
+        eventType: "ThatCoolEventType",
+        eventDate: new Date().getTime(),
+        application: "app1"
+      }
+    ];
 
-    let sendMessage = function(data, cb) {
-      var result = {};
+    let sendMessage = (data, callback) => {
+      let result = {};
       done1++;
-      cb(null, result);
+      callback(null, result);
     };
 
-    let publish = function(data, cb) {
-      var result = {};
+    let publish = (data, callback) => {
+      let result = {};
       done2++;
-      cb(null, result);
+      callback(null, result);
     };
 
-    const putRecord = (data, cb) => {
-      cb(null, { RecordId: "12345" });
+    const putRecord = (data, callback) => {
+      callback(null, { RecordId: "12345" });
     };
+
     AWS.mock("SNS", "publish", publish);
     AWS.mock("SQS", "sendMessage", sendMessage);
     AWS.mock("Firehose", "putRecord", putRecord);
 
     let context;
-    var time = new Date().getTime();
     let sqsEvent = {
       Records: [
         {
@@ -217,7 +224,8 @@ describe("Dispatcher Handler", function() {
       ]
     };
 
-    let cb = function(err, theevents) {
+    // eslint-disable-next-line no-unused-vars
+    let callback = (err, _event) => {
       expect(err).not.toBeDefined();
       //expect(events[0].eventType).toEqual("ThatCoolEventType");
       //expect(events[0].eventDate).toEqual(theevents[0].eventDate);
@@ -226,6 +234,6 @@ describe("Dispatcher Handler", function() {
       donef();
     };
 
-    disp.handler(sqsEvent, context, cb);
+    disp.handler(sqsEvent, context, callback);
   });
 });
