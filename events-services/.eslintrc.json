@@ -1,11 +1,12 @@
 {
+  "plugins": ["prettier", "jasmine"],
   "env": {
     "commonjs": true,
     "es6": true,
+    "jasmine": true,
     "node": true
   },
-  "extends": ["eslint:recommended", "plugin:prettier/recommended"],
-  "plugins": ["prettier"],
+  "extends": ["eslint:recommended", "plugin:prettier/recommended", "plugin:jasmine/recommended"],
   "globals": {
     "Atomics": "readonly",
     "SharedArrayBuffer": "readonly"
