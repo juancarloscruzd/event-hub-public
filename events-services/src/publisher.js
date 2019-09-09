@@ -1,45 +1,49 @@
-//----------------------------
-// --- Publisher
-//----------------------------
-
 "use strict";
 
-const AWS_REGION = process.env.AWS_REGION;
 const Promise = require("bluebird");
 const AWS = require("aws-sdk");
-AWS.config.update({ region: AWS_REGION });
-AWS.config.setPromisesDependency(Promise);
 const eventUtils = require("./eventUtils.js");
 const uuidv4 = require("uuid/v4");
+const logger = require("./logger.js");
 
+const AWS_REGION = process.env.AWS_REGION;
+AWS.config.update({ region: AWS_REGION });
+AWS.config.setPromisesDependency(Promise);
+
+/**
+ * @class Publisher
+ * Responsible for publish an event a General SNS topic
+ */
 class Publisher {
-  //----------------------------
-  // --- Constructs the Publisher
-  //----------------------------
+  /**
+   * Creates a new Publisher
+   */
   constructor() {
     this.RECEIVED_EVENTS_ARN = process.env.RECEIVED_EVENTS_ARN;
-    this.sns = undefined;
+    this.SNS = undefined;
   }
 
-  //----------------------------
-  // --- Initializes the Publisher
-  //----------------------------
-  init() {
-    this.sns = new AWS.SNS();
+  /**
+   * Initializes publisher
+   */
+  initialize() {
+    this.SNS = new AWS.SNS();
   }
 
-  //----------------------------
-  // --- Prepares the event for publishing, adding Metadata
-  //----------------------------
+  /**
+   * Prepares the event for publishing, adding Metadata
+   * @param {any} event
+   */
   prepareEvent(event) {
     event.publishDate = new Date().getTime();
     event.publisher = "PublisherLambda";
     event.uid = uuidv4();
   }
 
-  //----------------------------
-  // --- Publishes the event to the intake SNS topic
-  //----------------------------
+  /**
+   * Publishes the event to the intake SNS topic
+   * @param {any} event
+   */
   publishEvent(event) {
     this.prepareEvent(event);
     var params = {
@@ -47,18 +51,19 @@ class Publisher {
       Subject: event.eventType,
       Message: eventUtils.stringify(event)
     };
-    var prom = this.sns.publish(params).promise();
-    return prom.catch(function(err) {
-      return "topic does not exist";
-    });
+
+    return this.SNS.publish(params)
+      .promise()
+      .catch(() => "[PUBLISHER] topic does not exist");
   }
 }
 exports.Publisher = Publisher;
 
-//----------------------------
-// --- Handles the incoming event
-//----------------------------
-exports.handler = (message, context, callback) => {
+/**
+ * AWS Lambda function that handles all incoming events
+ */
+exports.handler = (message, _context, callback) => {
+  const publisher = new Publisher();
   const event = eventUtils.getOriginal(message);
 
   if (!event) {
@@ -66,13 +71,12 @@ exports.handler = (message, context, callback) => {
     return;
   }
 
-  const publisher = new Publisher();
-  publisher.init();
-
+  publisher.initialize();
   publisher
     .publishEvent(event)
-    .then(function(data) {
-      callback(undefined, event);
-    })
-    .catch(callback);
+    .then(() => callback(undefined, event))
+    .catch(err => {
+      logger.error(err);
+      callback();
+    });
 };
