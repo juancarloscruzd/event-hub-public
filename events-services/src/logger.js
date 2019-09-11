@@ -9,10 +9,9 @@ const logger = new winston.createLogger({
   ]
 });
 
-logger.level = process.env.LOG_LEVEL || "silly";
-
 logger.stream = {
-  write: function(message) {
+  // eslint-disable-next-line no-unused-vars
+  write: function(message, _encoding) {
     logger.info(message);
   }
 };

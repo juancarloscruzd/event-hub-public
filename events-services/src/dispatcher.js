@@ -64,7 +64,10 @@ class Dispatcher {
       Subject: event.eventType,
       Message: eventUtils.stringify(event)
     };
-    return this.SNS.publish(params).promise();
+    logger.info("[dispatchToEventsTopic]", params);
+    return this.SNS.publish(params)
+      .promise()
+      .catch(err => logger.error("[dispatchToEventsTopic]", err));
   }
 
   /**
@@ -77,7 +80,10 @@ class Dispatcher {
       MessageBody: eventUtils.stringify(event),
       QueueUrl: this.CATCHALL_QUEUE_URL
     };
-    return this.SQS.sendMessage(params).promise();
+    logger.info("[dispatchToCatchAllQueue]", params);
+    return this.SQS.sendMessage(params)
+      .promise()
+      .catch(err => logger.error("[dispatchToCatchAllQueue]", err));
   }
 
   /**
@@ -90,7 +96,11 @@ class Dispatcher {
       DeliveryStreamName: event.application,
       Record: { Data: new Buffer(JSON.stringify(event)) }
     };
-    return this.FIREHOSE.putRecord(params).promise();
+    logger.info("[dispatchToFirehose]", params);
+
+    return this.FIREHOSE.putRecord(params)
+      .promise()
+      .catch(err => logger.error("[dispatchToFirehose]", err));
   }
 }
 
