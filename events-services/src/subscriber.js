@@ -149,7 +149,7 @@ class Subscriber {
           Resource: queue.QueueArn,
           Condition: {
             ArnEquals: {
-              "aws:SourceArn": topic.TopicArn
+              "aws:SourceArn": `arn:aws:sns:${AWS_REGION}:${AWS_ACCOUNTID}:*`
             }
           }
         }
