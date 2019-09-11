@@ -46,7 +46,7 @@ class Publisher {
    */
   publishEvent(event) {
     this.prepareEvent(event);
-    var params = {
+    const params = {
       TopicArn: this.RECEIVED_EVENTS_ARN,
       Subject: event.eventType,
       Message: eventUtils.stringify(event)

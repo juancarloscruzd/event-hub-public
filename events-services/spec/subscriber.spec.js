@@ -1,9 +1,9 @@
 const Promise = require("bluebird");
-var AWS = require("aws-sdk-mock");
-var subs = require("../src/subscriber");
+const AWS = require("aws-sdk-mock");
+const subs = require("../src/subscriber");
 const logger = require("../src/logger.js");
 
-var testSubscriber;
+let testSubscriber;
 AWS.Promise = Promise;
 
 const currentEnv = process.env;
@@ -28,7 +28,7 @@ describe("subscriber", () => {
 
   it("should create a topic for the event with the given type", done => {
     let done1 = false;
-    let createTopic = (data, callback) => {
+    const createTopic = (data, callback) => {
       expect(data).toEqual({ Name: "MyEventType" });
       done1 = true;
       callback(null, { topicArn: "1234567" });
@@ -47,7 +47,7 @@ describe("subscriber", () => {
   });
 
   it("should NOT create a topic if eventType is undefined", done => {
-    let createTopic = jasmine.createSpy("createTopic");
+    const createTopic = jasmine.createSpy("createTopic");
     AWS.mock("SNS", "createTopic", createTopic);
     testSubscriber.initialize();
     try {
@@ -59,9 +59,9 @@ describe("subscriber", () => {
   });
 
   it("should create the dedicated queue for the subscriber ", done => {
-    var doneCreateQueue = false;
-    let createQueue = (data, callback) => {
-      let params = {
+    let doneCreateQueue = false;
+    const createQueue = (data, callback) => {
+      const params = {
         QueueName: "DLVRY-notifications",
         Attributes: {}
       };
@@ -70,9 +70,9 @@ describe("subscriber", () => {
       doneCreateQueue = true;
       callback(null, { QueueUrl: "MyQueueUrl" });
     };
-    var doneTagQueue = false;
-    let tagQueue = data => {
-      let params = {
+    let doneTagQueue = false;
+    const tagQueue = data => {
+      const params = {
         QueueUrl: "MyQueueUrl",
         Tags: {
           notificationUrl: "https://my.hook.url"
@@ -102,7 +102,7 @@ describe("subscriber", () => {
   });
 
   it("should NOT create the dedicated queue if subscriber is undefined", done => {
-    let createQueue = jasmine.createSpy("createQueue");
+    const createQueue = jasmine.createSpy("createQueue");
     AWS.mock("SQS", "createQueue", createQueue);
     testSubscriber.initialize();
     try {
@@ -114,9 +114,9 @@ describe("subscriber", () => {
   });
 
   it("should create the dedicated queue for the subscriber even without a notificationURL", done => {
-    var doneCreateQueue = false;
-    let createQueue = (data, callback) => {
-      let params = {
+    let doneCreateQueue = false;
+    const createQueue = (data, callback) => {
+      const params = {
         QueueName: "DLVRY-notifications",
         Attributes: {}
       };
@@ -125,7 +125,7 @@ describe("subscriber", () => {
       doneCreateQueue = true;
       callback(null, { QueueUrl: "MyQueueUrl" });
     };
-    let tagQueue = jasmine.createSpy("tagQueue");
+    const tagQueue = jasmine.createSpy("tagQueue");
 
     AWS.mock("SQS", "tagQueue", tagQueue);
     AWS.mock("SQS", "createQueue", createQueue);
@@ -146,8 +146,8 @@ describe("subscriber", () => {
   });
 
   it("should load the ARN for the given queue", done => {
-    let getQueueAttributes = (data, callback) => {
-      var params = {
+    const getQueueAttributes = (data, callback) => {
+      const params = {
         QueueUrl: "MyQueueUrl",
         AttributeNames: ["QueueArn"]
       };
@@ -168,9 +168,9 @@ describe("subscriber", () => {
   });
 
   it("should set the policy for the queue", done => {
-    var doneSetAttibute = false;
-    let setQueueAttributes = (data, callback) => {
-      var attributes = {
+    let doneSetAttibute = false;
+    const setQueueAttributes = (data, callback) => {
+      const attributes = {
         Version: "2008-10-17",
         Id: "myQueueArn/SQSDefaultPolicy",
         Statement: [
@@ -184,14 +184,14 @@ describe("subscriber", () => {
             Resource: "myQueueArn",
             Condition: {
               ArnEquals: {
-                "aws:SourceArn": "myTopic"
+                "aws:SourceArn": `arn:aws:sns:undefined:undefined:*`
               }
             }
           }
         ]
       };
       doneSetAttibute = true;
-      var dataObj = JSON.parse(data.Attributes.Policy);
+      const dataObj = JSON.parse(data.Attributes.Policy);
 
       expect(dataObj.Id).toEqual(attributes.Id);
       expect(dataObj.Statement[0].Condition).toEqual(
@@ -220,18 +220,18 @@ describe("subscriber", () => {
     let done1 = false,
       done2 = false,
       done3 = false;
-    var loadedQueue = { Attributes: { QueueArn: "myQueueArn" } };
+    const loadedQueue = { Attributes: { QueueArn: "myQueueArn" } };
 
-    let getQueueAttributes = (data, callback) => {
+    const getQueueAttributes = (data, callback) => {
       done1 = true;
       callback(null, loadedQueue);
     };
-    let setQueueAttributes = (data, callback) => {
+    const setQueueAttributes = (data, callback) => {
       done2 = true;
       callback(null, loadedQueue);
     };
-    let subscribe = (data, callback) => {
-      let params = {
+    const subscribe = (data, callback) => {
+      const params = {
         TopicArn: "1234567",
         Protocol: "sqs",
         Endpoint: "myQueueArn"
@@ -242,7 +242,7 @@ describe("subscriber", () => {
       callback(null, { result: "12345" });
     };
 
-    let queue = { QueueUrl: "MyQueueUrl", QueueArn: "myQueueArn" };
+    const queue = { QueueUrl: "MyQueueUrl", QueueArn: "myQueueArn" };
 
     AWS.mock("SQS", "getQueueAttributes", getQueueAttributes);
     AWS.mock("SNS", "subscribe", subscribe);
@@ -263,27 +263,27 @@ describe("subscriber", () => {
   });
 
   it("should subscribe a subscriber to an event type", donef => {
-    let done = new Array(8).fill(false);
-    let createTopic = (data, callback) => {
+    const done = new Array(8).fill(false);
+    const createTopic = (data, callback) => {
       done[0] = true;
       callback(null, { TopicArn: "1234567" });
     };
-    let tagQueue = () => (done[1] = true);
+    const tagQueue = () => (done[1] = true);
 
-    let createQueue = (data, callback) => {
+    const createQueue = (data, callback) => {
       done[2] = true;
       callback(null, { QueueUrl: "MyQueueUrl" });
     };
 
-    let getQueueAttributes = (data, callback) => {
+    const getQueueAttributes = (data, callback) => {
       done[3] = true;
       callback(null, { Attributes: { QueueArn: "myQueueArn" } });
     };
-    let subscribe = (data, callback) => {
+    const subscribe = (data, callback) => {
       done[4] = true;
       callback(null, { result: "12345" });
     };
-    let setQueueAttributes = (data, callback) => {
+    const setQueueAttributes = (data, callback) => {
       done[5] = true;
       callback(null, { Attributes: { QueueArn: "myQueueArn" } });
     };
@@ -325,8 +325,8 @@ describe("Subscriber Handler", () => {
     AWS.restore();
   });
 
-  it("should NOT accept an incomplete undefined event (null)", function() {
-    let callback = (err, subscription) => {
+  it("should NOT accept an incomplete undefined event (null)", () => {
+    const callback = (err, subscription) => {
       expect(err).toBe("Message is not a subscription!");
       expect(subscription).not.toBeDefined();
     };
@@ -334,11 +334,11 @@ describe("Subscriber Handler", () => {
   });
 
   it("should NOT accept an incomplete message (no subscriber)", () => {
-    let message = {
+    const message = {
       eventType: "ThisCoolEventType",
       notificationUrl: "http://my.notification.url"
     };
-    let callback = (err, subscription) => {
+    const callback = (err, subscription) => {
       expect(err).toBe("Message is not a subscription!");
       expect(subscription).toBe(message);
     };
@@ -346,16 +346,15 @@ describe("Subscriber Handler", () => {
   });
 
   it("should NOT accept an incomplete message (no eventType)", () => {
-    let message = {
+    const message = {
       subscriber: "MyGreatSubscriber",
       notificationUrl: "http://my.notification.url"
     };
-    let callback = function(err, subscription) {
+    const callback = (err, subscription) => {
       expect(err).toBe("Message is not a subscription!");
       expect(subscription).toBe(message);
     };
-    let context;
-    subs.handler(message, context, callback);
+    subs.handler(message, undefined, callback);
   });
 
   it("should receive a message and subscribe a subscriber to an eventType", donef => {
@@ -410,13 +409,13 @@ describe("Subscriber Handler", () => {
     AWS.mock("Firehose", "listDeliveryStreams", listDeliveryStreams);
     AWS.mock("Firehose", "createDeliveryStream", createDeliveryStream);
 
-    let message = {
+    const message = {
       eventType: "ThisCoolEventType",
       subscriber: "MyGreatSubscriber",
       notificationUrl: "http://my.notification.url"
     };
 
-    let callback = function(err, result) {
+    const callback = (err, result) => {
       expect(err).not.toBeDefined();
       expect(result).toEqual({
         request: message,
@@ -434,8 +433,6 @@ describe("Subscriber Handler", () => {
       expect(done[6]).toBeTruthy();
       donef();
     };
-
-    let context;
-    subs.handler(message, context, callback);
+    subs.handler(message, undefined, callback);
   });
 });

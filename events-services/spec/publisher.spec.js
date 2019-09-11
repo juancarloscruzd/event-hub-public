@@ -1,5 +1,5 @@
 const Promise = require("bluebird");
-var AWS = require("aws-sdk-mock");
+const AWS = require("aws-sdk-mock");
 const eventUtils = require("../src/eventUtils.js");
 const logger = require("../src/logger.js");
 const pub = require("../src/publisher");
@@ -31,32 +31,31 @@ describe("publisher", () => {
   });
 
   it("should prepare an event for pushing", () => {
+    const event = {};
     publisher.initialize();
-    let event = {};
-    let time = new Date().getTime();
     publisher.prepareEvent(event);
 
-    expect(event.publishDate - time).toBeLessThan(10);
+    expect(event.publishDate - new Date().getTime()).toBeLessThan(10);
     expect(event.publisher).toBe("PublisherLambda");
     expect(event.publisher).toBeDefined();
   });
 
   it("should publish the received event to a catchAll queue and to all existing topics", done => {
     let done1 = false;
-    var event = {
+    const event = {
       eventType: "ThatCoolEventType",
       eventDate: new Date().getTime()
     };
 
-    let publish = (data, callback) => {
-      var params = {
+    const publish = (data, callback) => {
+      const params = {
         TopicArn: "MyReceivedArn",
         Subject: "ThatCoolEventType",
         Message: eventUtils.stringify(event)
       };
 
       expect(data).toEqual(params);
-      var topic = { topicArn: "1234567" };
+      const topic = { topicArn: "1234567" };
       done1 = true;
       callback(undefined, topic);
     };
@@ -74,20 +73,20 @@ describe("publisher", () => {
 
   it("should publish the received event to a catchAll queue only if topic does not exists", done => {
     let done1 = false;
-    var event = {
+    const event = {
       eventType: "ThatCoolEventType",
       eventDate: new Date().getTime()
     };
 
-    let publish = (data, callback) => {
-      var params = {
+    const publish = (data, callback) => {
+      const params = {
         TopicArn: "MyReceivedArn",
         Subject: "ThatCoolEventType",
         Message: eventUtils.stringify(event)
       };
 
       expect(data).toEqual(params);
-      var topic = { topicArn: "1234567" };
+      const topic = { topicArn: "1234567" };
       done1 = true;
       callback("err", topic);
     };
@@ -112,31 +111,30 @@ describe("Handler", () => {
 
   it("should NOT accept an invalid event (null)", () => {
     let message;
-    let callback = (err, event) => {
+    const callback = (err, event) => {
       expect(err).toEqual("Message is not an Event!");
       expect(event).not.toBeDefined();
     };
-    let context;
-    pub.handler(message, context, callback);
+    pub.handler(message, undefined, callback);
   });
 
   it("should publish the given Event", donef => {
     let done1 = false;
-    let publish = (data, callback) => {
-      var topic = { topicArn: "1234567" };
+    const publish = (data, callback) => {
+      const topic = { topicArn: "1234567" };
       done1 = true;
       callback(null, topic);
     };
 
     AWS.mock("SNS", "publish", publish);
-    var time = new Date().getTime();
-    let message = {
+    const time = new Date().getTime();
+    const message = {
       Message: eventUtils.stringify({
         eventType: "ThatCoolEventType",
         eventDate: time
       })
     };
-    let callback = (err, event) => {
+    const callback = (err, event) => {
       expect(err).not.toBeDefined();
       expect(event.eventType).toEqual("ThatCoolEventType");
       expect(event.eventDate).toEqual(time);
@@ -145,7 +143,6 @@ describe("Handler", () => {
       expect(done1).toBeTruthy();
       donef();
     };
-    let context;
-    pub.handler(message, context, callback);
+    pub.handler(message, undefined, callback);
   });
 });

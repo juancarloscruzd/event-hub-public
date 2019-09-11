@@ -41,7 +41,7 @@ class Dispatcher {
    * @returns {Promise}
    */
   dispatchAll(events) {
-    let promisesArr = [];
+    const promisesArr = [];
 
     events.forEach(event => {
       promisesArr.push(this.dispatchToEventsTopic(event, event.eventType));
@@ -110,14 +110,14 @@ exports.Dispatcher = Dispatcher;
  * AWS Lambda function that handles all incoming events
  */
 exports.handler = (sqsEvent, _context, callback) => {
-  let errors = [],
+  const errors = [],
     events = [],
     records = sqsEvent.Records,
     dispatcher = new Dispatcher();
   dispatcher.initialize();
 
   for (let i = 0; i < records.length; i++) {
-    let event = eventUtils.getOriginal(JSON.parse(records[i].body));
+    const event = eventUtils.getOriginal(JSON.parse(records[i].body));
     if (!event) {
       errors.push(`Message ${i} is not an Event: ${records[i]}`);
     } else {

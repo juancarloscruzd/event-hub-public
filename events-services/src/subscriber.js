@@ -66,24 +66,23 @@ class Subscriber {
     if (!subscriber) {
       throw "Subscriber must be set";
     }
-    let params = {
+    const params = {
       QueueName: `DLVRY-${subscriber}`,
       Attributes: {}
     };
-    var self = this;
+
     return this.SQS.createQueue(params)
       .promise()
-      .then(function(queue) {
+      .then(queue => {
         if (!notificationUrl || notificationUrl === "") {
           return queue;
         }
-        let ps = {
+        this.SQS.tagQueue({
           QueueUrl: queue.QueueUrl,
           Tags: {
             notificationUrl: notificationUrl
           }
-        };
-        self.SQS.tagQueue(ps);
+        });
         return queue;
       });
   }
@@ -97,7 +96,7 @@ class Subscriber {
     return this.getQueueArn(queue).then(loadedQueue => {
       queue.QueueArn = loadedQueue.QueueArn;
 
-      let subscriptionParams = {
+      const subscriptionParams = {
         TopicArn: topic.TopicArn,
         Protocol: "sqs",
         Endpoint: queue.QueueArn
@@ -116,14 +115,14 @@ class Subscriber {
    * @param {*} queue
    */
   getQueueArn(queue) {
-    let params = {
+    const params = {
       QueueUrl: queue.QueueUrl,
       AttributeNames: ["QueueArn"]
     };
 
     return this.SQS.getQueueAttributes(params)
       .promise()
-      .then(function(loadedQueue) {
+      .then(loadedQueue => {
         queue.QueueArn = loadedQueue.Attributes.QueueArn;
         return queue;
       });
@@ -135,7 +134,7 @@ class Subscriber {
    * @param {any} queue
    */
   setQueuePolicy(topic, queue) {
-    let attributes = {
+    const attributes = {
       Version: "2008-10-17",
       Id: `${queue.QueueArn}/SQSDefaultPolicy`,
       Statement: [
@@ -156,7 +155,7 @@ class Subscriber {
       ]
     };
 
-    let params = {
+    const params = {
       QueueUrl: queue.QueueUrl,
       Attributes: {
         Policy: JSON.stringify(attributes)
@@ -226,7 +225,7 @@ exports.handler = (subscription, context, callback) => {
     return;
   }
 
-  let subscriber = new Subscriber();
+  const subscriber = new Subscriber();
   let results = { ...{ request: subscription } };
 
   subscriber.initialize();
