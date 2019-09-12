@@ -93,14 +93,11 @@ describe("publisher", () => {
 
     AWS.mock("SNS", "publish", publish);
     publisher.initialize();
-    publisher
-      .publishEvent(event)
-      .then(res => {
-        expect(res).toBe("[PUBLISHER] topic does not exist");
-        expect(done1).toBeTruthy();
-        done();
-      })
-      .catch(err => logger.error(err));
+    publisher.publishEvent(event).catch(err => {
+      expect(err).toEqual(new Error("[PUBLISHER] topic does not exist"));
+      expect(done1).toBeTruthy();
+      done();
+    });
   });
 });
 
@@ -112,7 +109,7 @@ describe("Handler", () => {
   it("should NOT accept an invalid event (null)", () => {
     let message;
     const callback = (err, event) => {
-      expect(err).toEqual("Message is not an Event!");
+      expect(err).toEqual("[PUBLISHER] Message is not an Event!");
       expect(event).not.toBeDefined();
     };
     pub.handler(message, undefined, callback);

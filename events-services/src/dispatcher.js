@@ -130,6 +130,6 @@ exports.handler = (sqsEvent, _context, callback) => {
     .then(() => callback(undefined, events))
     .catch(() => {
       errors.map(logger.error);
-      callback();
+      callback(errors);
     });
 };

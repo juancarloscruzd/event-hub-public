@@ -54,7 +54,9 @@ class Publisher {
 
     return this.SNS.publish(params)
       .promise()
-      .catch(() => "[PUBLISHER] topic does not exist");
+      .catch(() => {
+        throw new Error("[PUBLISHER] topic does not exist");
+      });
   }
 }
 exports.Publisher = Publisher;
@@ -67,7 +69,7 @@ exports.handler = (message, _context, callback) => {
   const event = eventUtils.getOriginal(message);
 
   if (!event) {
-    callback("Message is not an Event!", message);
+    callback("[PUBLISHER] Message is not an Event!", message);
     return;
   }
 
@@ -76,7 +78,6 @@ exports.handler = (message, _context, callback) => {
     .publishEvent(event)
     .then(() => callback(undefined, event))
     .catch(err => {
-      logger.error(err);
-      callback();
+      callback("[PUBLISHER] topic does not exist", err);
     });
 };
