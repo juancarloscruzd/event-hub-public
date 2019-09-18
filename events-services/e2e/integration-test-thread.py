@@ -4,19 +4,18 @@ import json
 import random
 import time
 import requests
+import concurrent.futures
 
 
 PUBLISH_ENDPOINT = "https://fub1tn865e.execute-api.us-east-1.amazonaws.com/beta/publish"
 SUBSCRIBRE_ENDPOINT = "https://26mcj4o9g4.execute-api.us-east-1.amazonaws.com/beta/subscribe"
 
 EVENTS = {
-    "ACCOUNT_CREATED": "accounts_application",
-    "ACCOUNT_CREATION_ERROR": "accounts_application",
-     "CREDIT_REQUESTED": "lending_application",
-     "CREDIT_LIMIT_REACHED": "lending_application",
-    "SEND_SMS_NOTIFICATION": "notifier",
-    "SEND_LEAD_INFO": "loans_application"
+    "CREDIT_REQUESTED": "lending_application",
+    "CREDIT_LIMIT_REACHED": "lending_application",
+    "CREDIT_DENIED": "lending_application",
 }
+
 
 def get_publish_body():
     data = {}
@@ -52,19 +51,24 @@ def create_subscriptions():
         print("This event {} will notify to this subscriber {}".format(
             event, subscriber))
         try:
-          r = requests.post(url=SUBSCRIBRE_ENDPOINT, data=data)
+            r = requests.post(url=SUBSCRIBRE_ENDPOINT, data=data)
         except requests.exceptions.RequestException as e:
-          print (e)
+            print(e)
         j = r.json()
         print(j)
 
 
-if __name__ == '__main__':
-    create_subscriptions()
+def integration_test(id):
+    print("Thread {}: starting".format(id))
 
     while True:
-        data = json.dumps(get_publish_body())
+        data = get_publish_body()
         print(data)
-        r = requests.post(url=PUBLISH_ENDPOINT, data=data)
-        j = r.json()
-        print(j)
+        requests.post(url=PUBLISH_ENDPOINT, data=json.dumps(data))
+
+
+if __name__ == "__main__":
+    create_subscriptions()
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        executor.map(integration_test, range(5))

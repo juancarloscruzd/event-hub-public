@@ -5,18 +5,15 @@ import random
 import time
 import requests
 
-
 PUBLISH_ENDPOINT = "https://fub1tn865e.execute-api.us-east-1.amazonaws.com/beta/publish"
 SUBSCRIBRE_ENDPOINT = "https://26mcj4o9g4.execute-api.us-east-1.amazonaws.com/beta/subscribe"
 
 EVENTS = {
-    "ACCOUNT_CREATED": "accounts_application",
-    "ACCOUNT_CREATION_ERROR": "accounts_application",
-     "CREDIT_REQUESTED": "lending_application",
-     "CREDIT_LIMIT_REACHED": "lending_application",
-    "SEND_SMS_NOTIFICATION": "notifier",
-    "SEND_LEAD_INFO": "loans_application"
+    "CREDIT_REQUESTED": "lending_application",
+    "CREDIT_LIMIT_REACHED": "lending_application",
+    "CREDIT_DENIED": "lending_application",
 }
+
 
 def get_publish_body():
     data = {}
@@ -52,19 +49,28 @@ def create_subscriptions():
         print("This event {} will notify to this subscriber {}".format(
             event, subscriber))
         try:
-          r = requests.post(url=SUBSCRIBRE_ENDPOINT, data=data)
+            r = requests.post(url=SUBSCRIBRE_ENDPOINT, data=data)
         except requests.exceptions.RequestException as e:
-          print (e)
+            print(e)
         j = r.json()
         print(j)
 
 
 if __name__ == '__main__':
     create_subscriptions()
+    CREDIT_LIMIT_REACHED_COUNT = 0
+    CREDIT_REQUESTED_COUNT = 0
+    i = 0
 
-    while True:
-        data = json.dumps(get_publish_body())
+    while i < 10:
+        data = get_publish_body()
         print(data)
-        r = requests.post(url=PUBLISH_ENDPOINT, data=data)
-        j = r.json()
-        print(j)
+        if (data['eventType'] == "CREDIT_LIMIT_REACHED"):
+            CREDIT_LIMIT_REACHED_COUNT += 1
+        else:
+            CREDIT_REQUESTED_COUNT += 1
+        r = requests.post(url=PUBLISH_ENDPOINT, data=json.dumps(data))
+        i += 1
+
+    print("CREDIT_LIMIT_REACHED_COUNT: " + str(CREDIT_LIMIT_REACHED_COUNT))
+    print("CREDIT_REQUESTED_COUNT: " + str(CREDIT_REQUESTED_COUNT))

@@ -1,142 +1,137 @@
-var AWS = require("aws-sdk-mock");
 const Promise = require("bluebird");
-var pub = require("../src/publisher");
-var publisher;
-AWS.Promise = Promise;
+const AWS = require("aws-sdk-mock");
 const eventUtils = require("../src/eventUtils.js");
-const currentEnv = process.env;
+const logger = require("../src/logger.js");
+const pub = require("../src/publisher");
 
-describe("publisher", function() {
-  beforeEach(function() {
+AWS.Promise = Promise;
+let publisher;
+const currentEnv = process.env;
+describe("publisher", () => {
+  beforeEach(() => {
     process.env.RECEIVED_EVENTS_ARN = "MyReceivedArn";
     publisher = new pub.Publisher();
   });
-  afterEach(function() {
+
+  afterEach(() => {
     AWS.restore();
     process.env = currentEnv;
   });
 
-  it("should be construct an un-initialized publisher,", function() {
-    expect(publisher.sns).not.toBeDefined();
+  it("should be construct an un-initialized publisher,", () => {
+    expect(publisher.SNS).not.toBeDefined();
     expect(publisher.RECEIVED_EVENTS_ARN).toBe("MyReceivedArn");
   });
-  it("should be initialized upon request", function() {
-    expect(publisher.sns).not.toBeDefined();
-    publisher.init();
-    expect(publisher.sns).toBeDefined();
+
+  it("should be initialized upon request", () => {
+    expect(publisher.SNS).not.toBeDefined();
+    publisher.initialize();
+
+    expect(publisher.SNS).toBeDefined();
   });
-  it("should prepare an event for pushing", function() {
-    publisher.init();
-    let event = {};
-    let time = new Date().getTime();
+
+  it("should prepare an event for pushing", () => {
+    const event = {};
+    publisher.initialize();
     publisher.prepareEvent(event);
-    expect(event.publishDate - time).toBeLessThan(10);
+
+    expect(event.publishDate - new Date().getTime()).toBeLessThan(10);
     expect(event.publisher).toBe("PublisherLambda");
     expect(event.publisher).toBeDefined();
   });
 
-  it("should publish the received event to a catchAll queue and to all existing topics", function(done) {
+  it("should publish the received event to a catchAll queue and to all existing topics", done => {
     let done1 = false;
-    var event = {
+    const event = {
       eventType: "ThatCoolEventType",
       eventDate: new Date().getTime()
     };
 
-    let publish = function(data, cb) {
-      var params = {
+    const publish = (data, callback) => {
+      const params = {
         TopicArn: "MyReceivedArn",
         Subject: "ThatCoolEventType",
         Message: eventUtils.stringify(event)
       };
 
       expect(data).toEqual(params);
-      var topic = { topicArn: "1234567" };
+      const topic = { topicArn: "1234567" };
       done1 = true;
-      cb(undefined, topic);
+      callback(undefined, topic);
     };
 
     AWS.mock("SNS", "publish", publish);
-    publisher.init();
+    publisher.initialize();
     publisher
       .publishEvent(event)
-      .then(function(res) {
+      .then(() => {
         expect(done1).toBeTruthy();
         done();
       })
-      .catch(function(e) {
-        console.log(e);
-      });
+      .catch(err => logger.console.error(err));
   });
-  it("should publish the received event to a catchAll queue only if topic does not exists", function(done) {
+
+  it("should publish the received event to a catchAll queue only if topic does not exists", done => {
     let done1 = false;
-    var event = {
+    const event = {
       eventType: "ThatCoolEventType",
       eventDate: new Date().getTime()
     };
 
-    let publish = function(data, cb) {
-      var params = {
+    const publish = (data, callback) => {
+      const params = {
         TopicArn: "MyReceivedArn",
         Subject: "ThatCoolEventType",
         Message: eventUtils.stringify(event)
       };
 
       expect(data).toEqual(params);
-      var topic = { topicArn: "1234567" };
+      const topic = { topicArn: "1234567" };
       done1 = true;
-      cb("err", topic);
+      callback("err", topic);
     };
 
     AWS.mock("SNS", "publish", publish);
-    publisher.init();
-    publisher
-      .publishEvent(event)
-      .then(function(res) {
-        expect(res).toBe("topic does not exist");
-        expect(done1).toBeTruthy();
-        done();
-      })
-      .catch(function(e) {
-        console.log(e);
-      });
+    publisher.initialize();
+    publisher.publishEvent(event).catch(err => {
+      expect(err).toEqual(new Error("[PUBLISHER] topic does not exist"));
+      expect(done1).toBeTruthy();
+      done();
+    });
   });
 });
 
-describe("Handler", function() {
-  beforeEach(function() {
-    process.env.RECEIVED_EVENTS_ARN = "MyReceivedArn";
-  });
-  afterEach(function() {
-    AWS.restore();
-  });
+describe("Handler", () => {
+  beforeEach(() => (process.env.RECEIVED_EVENTS_ARN = "MyReceivedArn"));
 
-  it("should NOT accept an invalid event (null)", function() {
+  afterEach(() => AWS.restore());
+
+  it("should NOT accept an invalid event (null)", () => {
     let message;
-    let cb = function(err, event) {
-      expect(err).toEqual("Message is not an Event!");
+    const callback = (err, event) => {
+      expect(err).toEqual("[PUBLISHER] Message is not an Event!");
       expect(event).not.toBeDefined();
     };
-    let context;
-    pub.handler(message, context, cb);
+    pub.handler(message, undefined, callback);
   });
 
-  it("should publish the given Event", function(donef) {
+  it("should publish the given Event", donef => {
     let done1 = false;
-    let publish = function(data, cb) {
-      var topic = { topicArn: "1234567" };
+    const publish = (data, callback) => {
+      const topic = { topicArn: "1234567" };
       done1 = true;
-      cb(null, topic);
+      callback(null, topic);
     };
 
     AWS.mock("SNS", "publish", publish);
-    var time = new Date().getTime();
-    let message = {
+    const time = new Date().getTime();
+    const message = {
       Message: eventUtils.stringify({
         eventType: "ThatCoolEventType",
         eventDate: time
       })
     };
-    let cb = function(err, event) {
+    const callback = (err, event) => {
       expect(err).not.toBeDefined();
       expect(event.eventType).toEqual("ThatCoolEventType");
       expect(event.eventDate).toEqual(time);
@@ -145,7 +140,6 @@ describe("Handler", function() {
       expect(done1).toBeTruthy();
       donef();
     };
-    let context;
-    pub.handler(message, context, cb);
+    pub.handler(message, undefined, callback);
   });
 });
