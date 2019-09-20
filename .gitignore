@@ -1,3 +1,4 @@
+.DS_Store
 .gitconfig
 ci.sh
 .m2
@@ -73,3 +74,4 @@ crashlytics-build.properties
 .project
 coverage
 .nyc_output
+events-services/.vscode/

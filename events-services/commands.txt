@@ -1,0 +1,26 @@
+aws cloudformation create-stack --stack-name adl-1 --parameters ParameterKey=EnvironmentName,ParameterValue=adl-1 --template-url https://s3.amazonaws.com/cf-adl-event-hub-events/master.yml --capabilities CAPABILITY_NAMED_IAM --region us-west-2
+
+
+
+
+
+aws cloudformation update-stack --stack-name adl-event-hub --parameters ParameterKey=EnvironmentName,ParameterValue=cf-adl-event-hub --template-url https://s3.amazonaws.com/cf-adl-event-hub-events/master.yml --capabilities CAPABILITY_NAMED_IAM --region us-east-1
+
+
+aws cloudformation create-stack --stack-name adl-event-hub --parameters ParameterKey=EnvironmentName,ParameterValue=cf-adl-event-hub --template-url https://s3.amazonaws.com/cf-adl-event-hub-events/master.yml --capabilities CAPABILITY_NAMED_IAM --region us-east-1
+
+
+delete-stack --stack-name adl-1 --region us-east-1
+
+
+aws sqs receive-message --queue-url https://queue.amazonaws.com/709220788877/DLVRY-accounts_application --attribute-names All --message-attribute-names All --max-number-of-messages 10
+
+
+aws sqs receive-message --queue-url https://queue.amazonaws.com/709220788877/DLVRY-lending_application --attribute-names All --message-attribute-names All --max-number-of-messages 10 --region us-east-1
+
+
+
+
+arn:aws:iam::*:*"
+
+arn:aws:iam:*:role/*"

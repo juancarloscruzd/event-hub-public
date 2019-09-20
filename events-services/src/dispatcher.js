@@ -1,101 +1,135 @@
-//----------------------------
-// --- DISPATCHER 
-//----------------------------
-'use strict';
-
-
-const AWS_REGION = process.env.AWS_REGION;
+"use strict";
 
 const Promise = require("bluebird");
-const AWS = require('aws-sdk');
-AWS.config.update({region: AWS_REGION });
+const AWS = require("aws-sdk");
+const eventUtils = require("./eventUtils.js");
+const logger = require("./logger");
+
+const AWS_REGION = process.env.AWS_REGION;
+AWS.config.update({ region: AWS_REGION });
 AWS.config.setPromisesDependency(Promise);
-const eventUtils = require('./eventUtils.js');
-const uuidv4 = require('uuid/v4');
 
-
+/**
+ *  @class Dispatcher
+ *  Responsible for send each event to its destination.
+ */
 class Dispatcher {
-    //----------------------------
-    // --- Constructs the Subscriber
-    //----------------------------
-    constructor( awsAccount ) {
-        this.PUBLISHED_QUEUE_URL = process.env.PUBLISHED_QUEUE_URL;
-        this.CATCHALL_QUEUE_URL = process.env.CATCHALL_QUEUE_URL;
-        this.AWS_ACCOUNTID = awsAccount;//"548067008624";//process.env.AWS_ACCOUNTID;
-        this.sns = undefined;
-        this.sqs = undefined;
-    }
+  /**
+   * Create a new Dispatcher
+   */
+  constructor() {
+    this.PUBLISHED_QUEUE_URL = process.env.PUBLISHED_QUEUE_URL;
+    this.CATCHALL_QUEUE_URL = process.env.CATCHALL_QUEUE_URL;
+    this.AWS_ACCOUNTID = process.env.AWS_ACCOUNTID;
+    this.SNS = undefined;
+    this.SQS = undefined;
+    this.FIREHOSE = undefined;
+  }
 
-    //----------------------------
-    // --- Initializes the subscriber
-    //----------------------------
-    init() {
-        this.sns = new AWS.SNS();
-        this.sqs = new AWS.SQS();
-    }
-    //--------------------------------------------------------
-    // --- Dispatches the event to the topic corresponding to it's type 
-    //--------------------------------------------------------
-    dispatchEvent (event, topic) {
-        var params = {
-            'TopicArn': "arn:aws:sns:" + AWS_REGION + ":" + this.AWS_ACCOUNTID  + ":" + topic,
-            'Subject': event.eventType,
-            'Message': eventUtils.stringify(event),
-        };
-        return this.sns.publish(params).promise();
-    }
+  /**
+   * Initialize dispatcher
+   */
+  initialize() {
+    this.SNS = new AWS.SNS();
+    this.SQS = new AWS.SQS();
+    this.FIREHOSE = new AWS.Firehose();
+  }
 
-    //--------------------------------------------------------
-    // --- Sends the event to the catch all queue
-    //--------------------------------------------------------
-    catch( event ) {
-        var params = {
-            MessageBody: eventUtils.stringify(event),
-            QueueUrl: this.CATCHALL_QUEUE_URL
-        };
-        return this.sqs.sendMessage(params).promise();
-    }
-    //--------------------------------------------------------
-    // --- Dispatches the events
-    //--------------------------------------------------------
-    dispatchAll(events) {
-        let ps = [];
-        var self = this;
-        for( var i = 0; i < events.length; i++) {
-            let event = events[i];
-            ps.push(this.catch( event ));
-            ps.push(this.dispatchEvent( event, event.eventType ));            
-        }
+  /**
+   * Dispatches all the incoming events to its destination
+   * @param {any} events
+   * @returns {Promise}
+   */
+  dispatchAll(events) {
+    const promisesArr = [];
 
-        return Promise.all(ps);
-    }
+    events.forEach(event => {
+      promisesArr.push(this.dispatchToEventsTopic(event, event.eventType));
+      promisesArr.push(this.dispatchToCatchAllQueue(event));
+      promisesArr.push(this.dispatchToFirehose(event));
+    });
 
-};
+    return Promise.all(promisesArr);
+  }
+
+  /**
+   * Dispatches the event to the topic corresponding to it's type
+   * @param {any} event
+   * @param {AWS.SNS.topicName} topicName
+   * @var {AWS.SNS.PublishInput} params
+   */
+  dispatchToEventsTopic(event, topicName) {
+    const params = {
+      TopicArn: `arn:aws:sns:${AWS_REGION}:${this.AWS_ACCOUNTID}:${topicName}`,
+      Subject: event.eventType,
+      Message: eventUtils.stringify(event)
+    };
+    logger.info("[dispatchToEventsTopic]", params);
+    return this.SNS.publish(params)
+      .promise()
+      .catch(err => logger.error("[dispatchToEventsTopic]", err));
+  }
+
+  /**
+   * Sends the event to the catch all queue
+   * @param {any} event
+   * @var {AWS.SQS.Types.SendMessageRequest} params
+   */
+  dispatchToCatchAllQueue(event) {
+    const params = {
+      MessageBody: eventUtils.stringify(event),
+      QueueUrl: this.CATCHALL_QUEUE_URL
+    };
+    logger.info("[dispatchToCatchAllQueue]", params);
+    return this.SQS.sendMessage(params)
+      .promise()
+      .catch(err => logger.error("[dispatchToCatchAllQueue]", err));
+  }
+
+  /**
+   * Dispatch an event to AWS Kinesis Firehose's delivery stream to be stored in a S3 bucket
+   * @param {any} event
+   * @var {AWS.Firehose.Types.PutRecordInput} params
+   */
+  dispatchToFirehose(event) {
+    const params = {
+      DeliveryStreamName: event.application,
+      Record: { Data: new Buffer(JSON.stringify(event)) }
+    };
+    logger.info("[dispatchToFirehose]", params);
+
+    return this.FIREHOSE.putRecord(params)
+      .promise()
+      .catch(err => logger.error("[dispatchToFirehose]", err));
+  }
+}
 
 exports.Dispatcher = Dispatcher;
 
+/**
+ * AWS Lambda function that handles all incoming events
+ */
+exports.handler = (sqsEvent, _context, callback) => {
+  const errors = [],
+    events = [],
+    records = sqsEvent.Records,
+    dispatcher = new Dispatcher();
+  dispatcher.initialize();
 
-//----------------------------
-// --- Handles the incoming event 
-//----------------------------
-exports.handler = function(sqsEvent, context, callback) {
-    let dispatcher = new Dispatcher("548067008624");
-    dispatcher.init();
-    var errors = [];
-    var events = [];
-    let records = sqsEvent.Records;
-
-    for( var i = 0; i < records.length; i++) {
-        var event = eventUtils.getOriginal( JSON.parse(records[i].body));
-        if ( !event ) {
-            errors.push("Message "+i+"is not an Event: " + records[i] );
-        } else {
-            events.push(event);
-        }
+  for (let i = 0; i < records.length; i++) {
+    const event = eventUtils.getOriginal(JSON.parse(records[i].body));
+    if (!event) {
+      errors.push(`Message ${i} is not an Event: ${records[i]}`);
+    } else {
+      events.push(event);
     }
+  }
 
-    dispatcher.dispatchAll( events ).then( function(data) {
-        callback(undefined, events);
-    })
-    .catch( callback );
+  dispatcher
+    .dispatchAll(events)
+    .then(() => callback(undefined, events))
+    .catch(() => {
+      errors.map(logger.error);
+      callback(errors);
+    });
 };
