@@ -75,7 +75,13 @@ Resources:
                 Action:
                   - sns:Publish
                 Resource: "*"
-
+        - PolicyName: xray
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - xray:*
+                Resource: "*"
   PublisherLambda:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -90,6 +96,8 @@ Resources:
       Role: !Sub ${PublisherLambdaRole.Arn}
       Runtime: nodejs8.10
       Timeout: 60
+      TracingConfig:
+        Mode: "Active"
       Environment:
         Variables:
           RECEIVED_EVENTS_ARN: !Ref ReceivedTopic

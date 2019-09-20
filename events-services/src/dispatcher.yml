@@ -90,7 +90,13 @@ Resources:
                 Action:
                   - firehose:PutRecord
                 Resource: arn:aws:firehose:*:*:*
-
+        - PolicyName: xray
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - xray:*
+                Resource: "*"
   DispatcherLambda:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -105,6 +111,8 @@ Resources:
       Role: !Sub ${DispatcherLambdaRole.Arn}
       Runtime: nodejs8.10
       Timeout: 60
+      TracingConfig:
+        Mode: "Active"
       Environment:
         Variables:
           CATCHALL_QUEUE_URL: !GetAtt CatchAll.Outputs.CatchAllQueueURL

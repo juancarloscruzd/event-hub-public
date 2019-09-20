@@ -74,6 +74,13 @@ Resources:
                 Action:
                   - iam:PassRole
                 Resource: !Sub arn:aws:iam::${AWS::AccountId}:role/firehose_delivery_role
+        - PolicyName: xray
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - xray:*
+                Resource: "*"
   SubscriberLambda:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -88,6 +95,8 @@ Resources:
       Role: !Sub ${SubscriberLambdaRole.Arn}
       Runtime: nodejs8.10
       Timeout: 60
+      TracingConfig:
+        Mode: "Active"
       Environment:
         Variables:
           AWS_ACCOUNTID: !Ref "AWS::AccountId"
