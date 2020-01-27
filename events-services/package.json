@@ -10,7 +10,7 @@
     "lint:fix": "eslint --fix . && echo 'Lint complete.'"
   },
   "dependencies": {
-    "axios": "0.18.0",
+    "axios": "0.18.1",
     "bluebird": "3.5.0",
     "uuid": "3.2.1",
     "winston": "^3.2.1"
